@@ -1,4 +1,4 @@
-name: Deploy to Aliyun ECS (Spring Boot + Vue)
+name: Deploy to Aliyun ECS
 
 on:
   push:
@@ -18,30 +18,5 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            # 1. 进入项目目录并拉取最新代码
             cd /root/wechat
             git pull origin main
-
-            # 2. 后端: 使用 Maven 打包 (前提: 服务器已安装 Maven 和 JDK)
-            echo "Building backend..."
-            cd /root/wechat/backend      # 请根据你的实际目录调整
-            mvn clean package -DskipTests
-
-            # 3. 重启后端服务 (使用 Systemd)
-            echo "Restarting backend service..."
-            cp target/<YOUR_JAR_NAME>.jar /root/wechat/backend.jar
-            systemctl restart <YOUR_BACKEND_SERVICE_NAME>
-
-            # 4. 前端: 安装依赖并构建 (前提: 服务器已安装 Node.js)
-            echo "Building frontend..."
-            cd /root/wechat/frontend      # 请根据你的实际目录调整
-            npm install
-            npm run build
-
-            # 5. 部署前端到 Nginx 目录并重载
-            echo "Deploying frontend to Nginx..."
-            rm -rf /var/www/wechat-frontend/*
-            cp -r dist/* /var/www/wechat-frontend/
-            nginx -s reload
-
-            echo "Deployment completed successfully!"
