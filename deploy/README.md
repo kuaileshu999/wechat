@@ -154,6 +154,7 @@ tail -f deploy/app.log
 | 页面能开，登录失败 | 检查 Nginx `/api/` 反向代理；`curl 127.0.0.1:8080/api/teaching-groups` |
 | 跨域错误 | 确认 `deploy/.env` 中 `CORS_ORIGINS` 含 `http://120.26.194.111`，重启后端 |
 | 后端启动失败 | `tail -f deploy/app.log`，检查 MySQL 账号密码 |
+| `.env: -Xmx512m: command not found` | `JAVA_OPTS` 须加引号：`JAVA_OPTS="-Xms256m -Xmx512m"` |
 
 ---
 
