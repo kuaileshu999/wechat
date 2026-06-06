@@ -20,3 +20,8 @@ jobs:
           script: |
             cd /root/wechat
             git pull origin main
+            if [[ -f deploy/.env ]]; then
+              bash deploy/server-deploy.sh
+            else
+              echo "请先配置 deploy/.env，参考 deploy/README.md"
+            fi

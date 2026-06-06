@@ -1,0 +1,61 @@
+#!/bin/bash
+# 在阿里云服务器上执行的一键部署脚本
+set -e
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+ENV_FILE="$ROOT/deploy/.env"
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "请先复制 deploy/.env.example 为 deploy/.env 并填写数据库密码"
+  echo "  cp deploy/.env.example deploy/.env"
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+
+echo "=========================================="
+echo " 消息托管系统 - 服务器部署"
+echo " 项目目录: $ROOT"
+echo "=========================================="
+
+echo ""
+echo "==> 1/4 检查数据库（首次部署请手动执行 bash deploy/init-db.sh）"
+TABLE_COUNT=$(mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${DB_USER}" -p"${DB_PASSWORD}" -N -e \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}'" 2>/dev/null || echo 0)
+if [[ "$TABLE_COUNT" == "0" ]]; then
+  echo "数据库 ${DB_NAME} 无表，正在初始化..."
+  bash "$ROOT/deploy/init-db.sh"
+else
+  echo "数据库已有 ${TABLE_COUNT} 张表，跳过初始化"
+fi
+
+echo ""
+bash "$ROOT/deploy/build-backend.sh"
+
+echo ""
+bash "$ROOT/deploy/build-frontend.sh"
+
+echo ""
+bash "$ROOT/deploy/restart-backend.sh"
+
+DEPLOY_HOST="${DEPLOY_HOST:-120.26.194.111}"
+FRONTEND_DIST="$ROOT/cursor/wechat-hosting/dist"
+
+echo ""
+echo "=========================================="
+echo " 部署完成"
+echo "=========================================="
+echo ""
+echo "【宝塔还需手动配置一次】"
+echo "1. 网站 → 添加站点 → 域名/IP: ${DEPLOY_HOST}"
+echo "2. 网站根目录设为:"
+echo "   ${FRONTEND_DIST}"
+echo "3. 网站 → 设置 → 配置文件，合并:"
+echo "   ${ROOT}/deploy/baota-nginx.conf"
+echo "4. 阿里云安全组放行 80 端口"
+echo ""
+echo "访问地址: http://${DEPLOY_HOST}"
+echo "测试账号: liting / 123456"
+echo ""
