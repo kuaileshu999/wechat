@@ -1,0 +1,6 @@
+-- 小规模演示数据已弃用，请使用批量生成脚本：
+--   ./scripts/generate-data.sh
+-- 或：
+--   python3 scripts/generate_bulk_data.py
+--
+-- 将生成：50 辅导 / 100 账号 / 10000 学生 / 100万 消息

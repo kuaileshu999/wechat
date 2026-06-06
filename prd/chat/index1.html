@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="format-detection" content="telephone=no,email=no,address=no" />
+    <title>AI 托管设置</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --text: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --primary: #1677ff;
+        --primary-press: #0f5bd6;
+        --shadow: 0 12px 30px rgba(17, 24, 39, 0.10);
+        --radius: 14px;
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --maxw: 980px;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", Arial, sans-serif;
+      }
+      button, input, select { font: inherit; }
+
+      .page {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(14px + var(--safe-top)) 12px calc(14px + var(--safe-bottom));
+      }
+      .modal {
+        width: 100%;
+        max-width: var(--maxw);
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+      }
+      .modal-title {
+        font-size: 16px;
+        font-weight: 950;
+        letter-spacing: 0.2px;
+      }
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(17, 24, 39, 0.10);
+        background: #fff;
+        border-radius: 10px;
+        padding: 0;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .icon-btn:active { transform: translateY(1px); }
+      .icon-btn svg { width: 18px; height: 18px; }
+
+      .modal-body {
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        user-select: none;
+      }
+      .switch-label { font-weight: 900; }
+      .switch input {
+        appearance: none;
+        width: 46px;
+        height: 24px;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.18);
+        position: relative;
+        outline: none;
+        cursor: pointer;
+        transition: background 0.16s ease;
+        border: 1px solid rgba(17, 24, 39, 0.10);
+      }
+      .switch input::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        transform: translateY(-50%);
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(17, 24, 39, 0.18);
+        transition: left 0.16s ease, width 0.16s ease;
+      }
+      .switch input:checked { background: rgba(22, 119, 255, 0.90); }
+      .switch input:checked::after { left: 22px; }
+      .switch input:disabled { opacity: 0.55; cursor: not-allowed; }
+      .switch input:disabled::after { box-shadow: none; }
+
+      .notice {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 650;
+      }
+      .notice.is-warn { color: #b54708; }
+
+      .section {
+        background: #fff;
+        border: 1px solid rgba(17, 24, 39, 0.10);
+        border-radius: 12px;
+        padding: 14px 14px;
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 950;
+        margin-bottom: 12px;
+      }
+      .section-title::before {
+        content: "";
+        width: 4px;
+        height: 14px;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.35);
+      }
+
+      .accounts-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .chk {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 750;
+        color: var(--text);
+      }
+      .chk input { width: 16px; height: 16px; }
+
+      .accounts-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 14px;
+      }
+      @media (max-width: 820px) {
+        .accounts-grid { grid-template-columns: 1fr; }
+      }
+      .account-item {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        align-items: center;
+        gap: 10px;
+        min-height: 56px;
+        padding: 10px 10px;
+        border-radius: 12px;
+        background: rgba(17, 24, 39, 0.04);
+        border: 1px solid rgba(17, 24, 39, 0.06);
+      }
+      .account-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(17, 24, 39, 0.12);
+        overflow: hidden;
+        flex: 0 0 auto;
+      }
+      .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .account-meta { min-width: 0; }
+      .account-name {
+        font-weight: 950;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .account-sub {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 650;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 12px 12px;
+        align-items: start;
+      }
+      .field { grid-column: span 12; display: grid; gap: 6px; }
+      .field.half { grid-column: span 6; }
+      .field.third { grid-column: span 4; }
+      @media (max-width: 820px) {
+        .field.half, .field.third { grid-column: span 12; }
+      }
+      .label {
+        font-size: 12px;
+        color: var(--text);
+        font-weight: 900;
+      }
+      .input, .select {
+        border: 1px solid rgba(17, 24, 39, 0.14);
+        border-radius: 10px;
+        padding: 10px 10px;
+        outline: none;
+        background: #fff;
+      }
+      .input:focus, .select:focus {
+        border-color: rgba(22, 119, 255, 0.55);
+        box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+      }
+      .input:disabled, .select:disabled { background: rgba(17, 24, 39, 0.04); cursor: not-allowed; }
+
+      .radio-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      .radio {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 750;
+        color: var(--text);
+      }
+      .radio input { width: 16px; height: 16px; }
+
+      .ranges {
+        display: grid;
+        gap: 8px;
+      }
+      .range-add {
+        display: grid;
+        grid-template-columns: 1fr 18px 1fr auto;
+        gap: 8px;
+        align-items: center;
+      }
+      .dash { color: var(--muted); text-align: center; font-weight: 900; }
+      .range-list { display: grid; gap: 6px; }
+      .range-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 10px;
+        border: 1px solid rgba(17, 24, 39, 0.10);
+        border-radius: 10px;
+        background: rgba(17, 24, 39, 0.03);
+      }
+      .range-text { font-weight: 850; color: var(--text); }
+
+      .btn {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-weight: 950;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .btn:active { transform: translateY(1px); }
+      .btn-primary { background: var(--primary); color: #fff; }
+      .btn-primary:active { background: var(--primary-press); }
+      .btn-ghost { background: #fff; color: var(--text); border: 1px solid rgba(17, 24, 39, 0.14); }
+      .btn-danger { background: rgba(217, 45, 32, 0.10); color: #d92d20; border: 1px solid rgba(217, 45, 32, 0.22); }
+      .btn-mini { padding: 8px 10px; border-radius: 10px; font-weight: 900; }
+
+      .footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 14px 16px;
+        border-top: 1px solid rgba(17, 24, 39, 0.08);
+        background: rgba(17, 24, 39, 0.02);
+      }
+
+      .is-hidden { display: none !important; }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(16px + var(--safe-bottom));
+        transform: translateX(-50%);
+        background: rgba(17, 24, 39, 0.92);
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 850;
+        font-size: 13px;
+        display: none;
+        z-index: 50;
+        max-width: min(520px, calc(100vw - 24px));
+        text-align: center;
+      }
+      .toast.is-show { display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="AI 托管设置">
+        <div class="modal-header">
+          <div class="modal-title">AI 托管设置</div>
+          <button id="closeBtn" class="icon-btn" type="button" aria-label="关闭">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18"></path>
+              <path d="M6 6 18 18"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row">
+            <label class="switch">
+              <span class="switch-label">AI 托管</span>
+              <input id="aiSwitch" type="checkbox" />
+            </label>
+            <button id="tempOff15Btn" class="btn btn-ghost btn-mini" type="button">临时关闭 15 分钟</button>
+            <div id="switchHint" class="notice"></div>
+          </div>
+
+          <div id="accountsSection" class="section">
+            <div class="section-title">账号信息</div>
+            <div class="accounts-toolbar">
+              <label class="chk">
+                <input id="selectAll" type="checkbox" />
+                全选
+              </label>
+              <div id="selectedInfo" class="notice"></div>
+            </div>
+            <div id="accountsGrid" class="accounts-grid"></div>
+          </div>
+
+          <div id="hostingSection" class="section">
+            <div class="section-title">托管信息</div>
+            <div class="form-grid">
+              <div class="field half">
+                <div class="label">单用户暂停时长（分钟）</div>
+                <input id="pauseMinutes" class="input" type="number" min="1" max="1440" step="1" placeholder="例如：15" />
+              </div>
+              <div class="field half">
+                <div class="label">禁止回复时间段</div>
+                <div class="ranges">
+                  <div class="range-add">
+                    <input id="rangeStart" class="input" type="time" />
+                    <div class="dash">—</div>
+                    <input id="rangeEnd" class="input" type="time" />
+                    <button id="addRangeBtn" class="btn btn-primary btn-mini" type="button">添加</button>
+                  </div>
+                  <div id="rangeList" class="range-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="configSection" class="section">
+            <div class="section-title">配置信息</div>
+            <div class="form-grid">
+              <div class="field half">
+                <div class="label">上课终端</div>
+                <div class="radio-row" role="radiogroup" aria-label="上课终端">
+                  <label class="radio"><input type="radio" name="terminal" value="miniapp" />小程序</label>
+                  <label class="radio"><input type="radio" name="terminal" value="app" />App</label>
+                </div>
+              </div>
+              <div class="field half">
+                <div class="label">首次转化课节</div>
+                <select id="firstLesson" class="select">
+                  <option value="">请选择</option>
+                  <option value="lesson_1">第 1 节</option>
+                  <option value="lesson_2">第 2 节</option>
+                  <option value="lesson_3">第 3 节</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <button id="cancelBtn" class="btn btn-ghost" type="button">取消</button>
+          <button id="saveBtn" class="btn btn-primary" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+      const STORAGE_KEYS = {
+        accounts: "ai_hosting_accounts_v1",
+        accountSettings: "ai_hosting_account_settings_v1",
+        globalEnabled: "ai_hosting_global_enabled_v1",
+        globalPauseUntil: "ai_hosting_global_pause_until_v1",
+      };
+
+      const DEFAULT_ACCOUNTS = [
+        { id: "acc_1001", name: "小鑫课堂-邢老师", sub: "小鑫线上", avatar: "" },
+        { id: "acc_1002", name: "小鑫课堂-邢老师(1)", sub: "小鑫线上", avatar: "" },
+        { id: "acc_1003", name: "小鑫课堂-邢老师(2)", sub: "小鑫线上", avatar: "" },
+        { id: "acc_1004", name: "小鑫课堂-邢老师(3)", sub: "小鑫线上", avatar: "" },
+      ];
+
+      const state = {
+        accounts: [],
+        selectedIds: new Set(),
+        settingsMap: {},
+        ranges: [],
+        toastTimer: null,
+        selectionMixed: false,
+        globalEnabled: true,
+        pauseUntil: null,
+        pauseTimer: null,
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const accountsGridEl = $("accountsGrid");
+      const accountsSectionEl = $("accountsSection");
+      const hostingSectionEl = $("hostingSection");
+      const selectAllEl = $("selectAll");
+      const selectedInfoEl = $("selectedInfo");
+      const aiSwitchEl = $("aiSwitch");
+      const tempOff15BtnEl = $("tempOff15Btn");
+      const switchHintEl = $("switchHint");
+      const pauseMinutesEl = $("pauseMinutes");
+      const rangeStartEl = $("rangeStart");
+      const rangeEndEl = $("rangeEnd");
+      const addRangeBtnEl = $("addRangeBtn");
+      const rangeListEl = $("rangeList");
+      const configSectionEl = $("configSection");
+      const firstLessonEl = $("firstLesson");
+      const toastEl = $("toast");
+      const saveBtnEl = $("saveBtn");
+      const cancelBtnEl = $("cancelBtn");
+      const closeBtnEl = $("closeBtn");
+
+      function safeParseJson(raw, fallback) {
+        try {
+          if (!raw) return fallback;
+          return JSON.parse(raw);
+        } catch {
+          return fallback;
+        }
+      }
+
+      function loadAccounts() {
+        const list = safeParseJson(localStorage.getItem(STORAGE_KEYS.accounts), null);
+        if (Array.isArray(list) && list.length) return list;
+        return DEFAULT_ACCOUNTS.slice();
+      }
+
+      function loadSettingsMap() {
+        const map = safeParseJson(localStorage.getItem(STORAGE_KEYS.accountSettings), {});
+        return map && typeof map === "object" ? map : {};
+      }
+
+      function loadGlobalEnabled() {
+        const raw = localStorage.getItem(STORAGE_KEYS.globalEnabled);
+        if (raw == null) return true;
+        return raw === "1";
+      }
+
+      function loadGlobalPauseUntil() {
+        const raw = localStorage.getItem(STORAGE_KEYS.globalPauseUntil);
+        if (raw == null) return null;
+        const num = Number(raw);
+        return Number.isFinite(num) ? num : null;
+      }
+
+      function persist() {
+        localStorage.setItem(STORAGE_KEYS.accounts, JSON.stringify(state.accounts));
+        localStorage.setItem(STORAGE_KEYS.accountSettings, JSON.stringify(state.settingsMap));
+        localStorage.setItem(STORAGE_KEYS.globalEnabled, state.globalEnabled ? "1" : "0");
+        if (typeof state.pauseUntil === "number" && Number.isFinite(state.pauseUntil)) {
+          localStorage.setItem(STORAGE_KEYS.globalPauseUntil, String(state.pauseUntil));
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.globalPauseUntil);
+        }
+      }
+
+      function showToast(text) {
+        toastEl.textContent = text;
+        toastEl.classList.add("is-show");
+        if (state.toastTimer) window.clearTimeout(state.toastTimer);
+        state.toastTimer = window.setTimeout(() => {
+          toastEl.classList.remove("is-show");
+        }, 1600);
+      }
+
+      function setDisabledForInputs(disabled) {
+        pauseMinutesEl.disabled = disabled;
+        rangeStartEl.disabled = disabled;
+        rangeEndEl.disabled = disabled;
+        addRangeBtnEl.disabled = disabled;
+        firstLessonEl.disabled = disabled;
+        document.querySelectorAll('input[name="terminal"]').forEach((el) => {
+          el.disabled = disabled;
+        });
+        rangeListEl.querySelectorAll("button").forEach((btn) => {
+          btn.disabled = disabled;
+        });
+      }
+
+      function setAccountSelectionDisabled(disabled) {
+        selectAllEl.disabled = disabled;
+        accountsGridEl.querySelectorAll('input[type="checkbox"]').forEach((el) => {
+          el.disabled = disabled;
+        });
+      }
+
+      function setConfigVisible(visible) {
+        configSectionEl.classList.toggle("is-hidden", !visible);
+      }
+
+      function isPauseActive() {
+        return typeof state.pauseUntil === "number" && state.pauseUntil > Date.now();
+      }
+
+      function formatMs(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes} 分 ${String(seconds).padStart(2, "0")} 秒`;
+      }
+
+      function setGlobalUi(enabled) {
+        const paused = isPauseActive();
+        accountsSectionEl.classList.toggle("is-hidden", !enabled);
+        hostingSectionEl.classList.toggle("is-hidden", !enabled);
+        setConfigVisible(enabled);
+        setDisabledForInputs(!enabled);
+        setAccountSelectionDisabled(!enabled);
+        if (!enabled) {
+          if (paused) {
+            switchHintEl.textContent = `临时关闭中：剩余 ${formatMs(state.pauseUntil - Date.now())}，可立即开启`;
+            switchHintEl.classList.add("is-warn");
+            tempOff15BtnEl.classList.remove("is-hidden");
+            tempOff15BtnEl.textContent = "立即开启";
+          } else {
+            switchHintEl.textContent = "已关闭：无需选择账号或填写任何配置信息";
+            switchHintEl.classList.remove("is-warn");
+            tempOff15BtnEl.classList.add("is-hidden");
+          }
+        } else {
+          switchHintEl.textContent = "已开启：请选择账号后批量设置配置信息";
+          switchHintEl.classList.remove("is-warn");
+          tempOff15BtnEl.classList.remove("is-hidden");
+          tempOff15BtnEl.textContent = "临时关闭 15 分钟";
+        }
+      }
+
+      function compareRanges(a, b) {
+        return JSON.stringify(a || []) === JSON.stringify(b || []);
+      }
+
+      function getCommonSetting(getter) {
+        const ids = Array.from(state.selectedIds);
+        if (!ids.length) return { isMixed: false, value: null };
+        const first = getter(ids[0]);
+        for (let i = 1; i < ids.length; i += 1) {
+          const next = getter(ids[i]);
+          const same = typeof first === "object" ? JSON.stringify(first) === JSON.stringify(next) : first === next;
+          if (!same) return { isMixed: true, value: null };
+        }
+        return { isMixed: false, value: first };
+      }
+
+      function getAccountSettings(id) {
+        const raw = state.settingsMap[id];
+        if (!raw || typeof raw !== "object") return null;
+        return raw;
+      }
+
+      function renderAccounts() {
+        accountsGridEl.innerHTML = "";
+        for (const acc of state.accounts) {
+          const item = document.createElement("div");
+          item.className = "account-item";
+
+          const chkWrap = document.createElement("label");
+          chkWrap.className = "chk";
+
+          const chk = document.createElement("input");
+          chk.type = "checkbox";
+          chk.checked = state.selectedIds.has(acc.id);
+          chk.disabled = !state.globalEnabled;
+          chk.addEventListener("change", () => {
+            if (!state.globalEnabled) return;
+            if (chk.checked) state.selectedIds.add(acc.id);
+            else state.selectedIds.delete(acc.id);
+            syncSelectionUi();
+            hydrateFormFromSelection();
+          });
+
+          chkWrap.appendChild(chk);
+          item.appendChild(chkWrap);
+
+          const card = document.createElement("div");
+          card.className = "account-card";
+
+          const avatar = document.createElement("div");
+          avatar.className = "avatar";
+          if (acc.avatar) {
+            const img = document.createElement("img");
+            img.src = acc.avatar;
+            img.alt = "";
+            avatar.appendChild(img);
+          }
+
+          const meta = document.createElement("div");
+          meta.className = "account-meta";
+
+          const name = document.createElement("div");
+          name.className = "account-name";
+          name.textContent = acc.name || acc.id;
+
+          const sub = document.createElement("div");
+          sub.className = "account-sub";
+          sub.textContent = acc.sub || "—";
+
+          meta.appendChild(name);
+          meta.appendChild(sub);
+
+          card.appendChild(avatar);
+          card.appendChild(meta);
+
+          item.appendChild(card);
+          accountsGridEl.appendChild(item);
+        }
+      }
+
+      function syncSelectionUi() {
+        const total = state.accounts.length;
+        const selected = state.selectedIds.size;
+        if (!state.globalEnabled) selectedInfoEl.textContent = "";
+        else selectedInfoEl.textContent = selected ? `已选 ${selected} 个账号，将批量保存` : "请选择账号后再配置";
+
+        if (!total) {
+          selectAllEl.checked = false;
+          selectAllEl.indeterminate = false;
+          return;
+        }
+        if (selected === 0) {
+          selectAllEl.checked = false;
+          selectAllEl.indeterminate = false;
+        } else if (selected === total) {
+          selectAllEl.checked = true;
+          selectAllEl.indeterminate = false;
+        } else {
+          selectAllEl.checked = false;
+          selectAllEl.indeterminate = true;
+        }
+      }
+
+      function setTerminalValue(value) {
+        document.querySelectorAll('input[name="terminal"]').forEach((el) => {
+          el.checked = el.value === value;
+        });
+      }
+
+      function getTerminalValue() {
+        const el = document.querySelector('input[name="terminal"]:checked');
+        return el ? el.value : "";
+      }
+
+      function renderRanges() {
+        rangeListEl.innerHTML = "";
+        for (const r of state.ranges) {
+          const item = document.createElement("div");
+          item.className = "range-item";
+
+          const text = document.createElement("div");
+          text.className = "range-text";
+          text.textContent = `${r.start} — ${r.end}`;
+
+          const del = document.createElement("button");
+          del.className = "btn btn-danger btn-mini";
+          del.type = "button";
+          del.textContent = "删除";
+          del.addEventListener("click", () => {
+            state.ranges = state.ranges.filter((x) => !(x.start === r.start && x.end === r.end));
+            renderRanges();
+          });
+
+          item.appendChild(text);
+          item.appendChild(del);
+          rangeListEl.appendChild(item);
+        }
+      }
+
+      function hydrateFormFromSelection() {
+        if (!state.globalEnabled) {
+          saveBtnEl.disabled = false;
+          return;
+        }
+
+        const ids = Array.from(state.selectedIds);
+        const hasSelection = ids.length > 0;
+
+        if (!hasSelection) {
+          state.selectionMixed = false;
+          setDisabledForInputs(true);
+          pauseMinutesEl.value = "";
+          firstLessonEl.value = "";
+          setTerminalValue("");
+          state.ranges = [];
+          renderRanges();
+          saveBtnEl.disabled = true;
+          return;
+        }
+
+        saveBtnEl.disabled = false;
+
+        const pauseCommon = getCommonSetting((id) => {
+          const s = getAccountSettings(id);
+          return s && typeof s.pauseMinutes === "number" ? s.pauseMinutes : null;
+        });
+        pauseMinutesEl.value = pauseCommon.isMixed || pauseCommon.value == null ? "" : String(pauseCommon.value);
+
+        const terminalCommon = getCommonSetting((id) => {
+          const s = getAccountSettings(id);
+          return s && s.terminal ? s.terminal : "";
+        });
+        setTerminalValue(terminalCommon.isMixed ? "" : terminalCommon.value);
+
+        const lessonCommon = getCommonSetting((id) => {
+          const s = getAccountSettings(id);
+          return s && s.firstLesson ? s.firstLesson : "";
+        });
+        firstLessonEl.value = lessonCommon.isMixed ? "" : lessonCommon.value;
+
+        const rangesCommon = getCommonSetting((id) => {
+          const s = getAccountSettings(id);
+          return s && Array.isArray(s.forbiddenRanges) ? s.forbiddenRanges : [];
+        });
+        state.ranges = rangesCommon.isMixed ? [] : (rangesCommon.value || []);
+        renderRanges();
+        setDisabledForInputs(false);
+      }
+
+      function validateAndBuildSettings() {
+        const pauseMinutes = Number(pauseMinutesEl.value);
+        if (!Number.isFinite(pauseMinutes) || pauseMinutes < 1 || pauseMinutes > 1440) {
+          return { error: "请输入 1-1440 之间的暂停时长" };
+        }
+
+        for (const r of state.ranges) {
+          if (!r.start || !r.end) return { error: "禁止回复时间段需要填写完整的开始/结束时间" };
+          if (r.start >= r.end) return { error: "禁止回复时间段开始时间需要小于结束时间" };
+        }
+
+        const terminal = getTerminalValue();
+        if (!terminal) return { error: "请选择上课终端" };
+
+        const firstLesson = firstLessonEl.value;
+        if (!firstLesson) return { error: "请选择首次转化课节" };
+
+        return {
+          pauseMinutes,
+          forbiddenRanges: state.ranges.slice(),
+          terminal,
+          firstLesson,
+        };
+      }
+
+      function applySettingsToSelection(newSettings) {
+        for (const id of state.selectedIds) {
+          const prev = getAccountSettings(id) || {};
+          state.settingsMap[id] = { ...prev, ...newSettings };
+        }
+        persist();
+      }
+
+      function onSave() {
+        const wasPaused = isPauseActive();
+        state.globalEnabled = !!aiSwitchEl.checked;
+        if (state.globalEnabled && wasPaused) state.pauseUntil = null;
+        persist();
+
+        if (!state.globalEnabled) {
+          showToast("AI 托管已关闭");
+          state.selectedIds = new Set();
+          renderAccounts();
+          syncSelectionUi();
+          setGlobalUi(false);
+          return;
+        }
+
+        if (!state.selectedIds.size) {
+          showToast("请先选择账号");
+          return;
+        }
+
+        const built = validateAndBuildSettings();
+        if (built.error) {
+          showToast(built.error);
+          return;
+        }
+
+        applySettingsToSelection(built);
+        showToast(`已保存到 ${state.selectedIds.size} 个账号`);
+        hydrateFormFromSelection();
+        renderAccounts();
+      }
+
+      function onCancel() {
+        hydrateFormFromSelection();
+        showToast("已取消修改");
+      }
+
+      function onClose() {
+        showToast("已关闭");
+      }
+
+      function addRange() {
+        const start = rangeStartEl.value;
+        const end = rangeEndEl.value;
+        if (!start || !end) {
+          showToast("请选择开始/结束时间");
+          return;
+        }
+        if (start >= end) {
+          showToast("开始时间需要小于结束时间");
+          return;
+        }
+        const next = { start, end };
+        const exists = state.ranges.some((r) => r.start === start && r.end === end);
+        if (exists) {
+          showToast("该时间段已存在");
+          return;
+        }
+        state.ranges = state.ranges.concat([next]).sort((a, b) => (a.start + a.end).localeCompare(b.start + b.end));
+        renderRanges();
+        rangeStartEl.value = "";
+        rangeEndEl.value = "";
+      }
+
+      function onAiSwitchChange() {
+        const nextEnabled = !!aiSwitchEl.checked;
+        if (nextEnabled) state.pauseUntil = null;
+        state.globalEnabled = nextEnabled;
+        persist();
+        setGlobalUi(state.globalEnabled);
+        if (!state.globalEnabled) {
+          state.selectedIds = new Set();
+        } else if (!state.selectedIds.size) {
+          state.selectedIds = new Set(state.accounts.map((a) => a.id));
+        }
+        renderAccounts();
+        syncSelectionUi();
+        hydrateFormFromSelection();
+      }
+
+      function init() {
+        state.accounts = loadAccounts();
+        state.settingsMap = loadSettingsMap();
+        state.globalEnabled = loadGlobalEnabled();
+        state.pauseUntil = loadGlobalPauseUntil();
+        if (typeof state.pauseUntil === "number" && state.pauseUntil <= Date.now()) state.pauseUntil = null;
+        if (isPauseActive()) state.globalEnabled = false;
+        aiSwitchEl.checked = state.globalEnabled;
+        state.selectedIds = state.globalEnabled ? new Set(state.accounts.map((a) => a.id)) : new Set();
+
+        renderAccounts();
+        syncSelectionUi();
+        setGlobalUi(state.globalEnabled);
+        hydrateFormFromSelection();
+
+        selectAllEl.addEventListener("change", () => {
+          if (!state.globalEnabled) return;
+          if (selectAllEl.checked) state.selectedIds = new Set(state.accounts.map((a) => a.id));
+          else state.selectedIds = new Set();
+          renderAccounts();
+          syncSelectionUi();
+          hydrateFormFromSelection();
+        });
+
+        aiSwitchEl.addEventListener("change", onAiSwitchChange);
+        tempOff15BtnEl.addEventListener("click", () => {
+          if (isPauseActive()) {
+            state.pauseUntil = null;
+            aiSwitchEl.checked = true;
+            onAiSwitchChange();
+            showToast("AI 托管已开启");
+            return;
+          }
+          if (!state.globalEnabled) {
+            showToast("请先开启 AI 托管");
+            return;
+          }
+          state.pauseUntil = Date.now() + 15 * 60 * 1000;
+          aiSwitchEl.checked = false;
+          onAiSwitchChange();
+          showToast("已临时关闭 15 分钟");
+        });
+        addRangeBtnEl.addEventListener("click", addRange);
+        saveBtnEl.addEventListener("click", onSave);
+        cancelBtnEl.addEventListener("click", onCancel);
+        closeBtnEl.addEventListener("click", onClose);
+
+        state.pauseTimer = window.setInterval(() => {
+          if (!state.pauseUntil) return;
+          if (isPauseActive()) {
+            if (state.globalEnabled) return;
+            setGlobalUi(false);
+            return;
+          }
+          state.pauseUntil = null;
+          aiSwitchEl.checked = true;
+          onAiSwitchChange();
+          showToast("临时关闭结束，已自动开启");
+        }, 1000);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="format-detection" content="telephone=no,email=no,address=no" />
+    <title>到课确认</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --primary: #2f63c7;
+        --primary-press: #2450a6;
+        --danger: #d92d20;
+        --success: #0f9d58;
+        --shadow: 0 10px 28px rgba(17, 24, 39, 0.10);
+        --radius: 14px;
+        --gap: 14px;
+        --maxw: 460px;
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", Arial, sans-serif;
+      }
+      button, input, textarea { font: inherit; }
+      .app {
+        min-height: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 16px 12px calc(20px + var(--safe-bottom));
+      }
+      .frame {
+        width: 100%;
+        max-width: var(--maxw);
+      }
+      .page { display: none; }
+      .page.is-active { display: block; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 16px;
+      }
+      .hero-title {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+      }
+      .hero-sub {
+        margin-top: 10px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .mascot {
+        width: 72px;
+        height: 72px;
+        flex: 0 0 auto;
+      }
+      .section {
+        margin-top: var(--gap);
+      }
+      .section .card { padding: 14px 14px 10px; }
+      .course-name {
+        font-size: 18px;
+        font-weight: 800;
+        text-align: center;
+        padding: 10px 8px 6px;
+      }
+      .list {
+        margin: 0;
+        padding: 0 6px 6px;
+        list-style: none;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 72px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 6px;
+        border-top: 1px dashed rgba(229, 231, 235, 0.85);
+      }
+      .row:first-child { border-top: 0; }
+      .row-left { font-weight: 800; }
+      .row-mid { color: var(--text); font-weight: 650; }
+      .row-mid small { display: block; margin-top: 2px; color: var(--muted); font-weight: 600; }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+      .badge.success { background: rgba(15, 157, 88, 0.10); color: var(--success); border-color: rgba(15, 157, 88, 0.25); }
+      .badge.danger { background: rgba(217, 45, 32, 0.10); color: var(--danger); border-color: rgba(217, 45, 32, 0.25); }
+      .badge.muted { background: rgba(107, 114, 128, 0.10); color: var(--muted); border-color: rgba(107, 114, 128, 0.25); }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 14px;
+      }
+      .btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 12px 12px;
+        font-weight: 900;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .btn:active { transform: translateY(1px); }
+      .btn-primary { background: var(--primary); color: #fff; }
+      .btn-primary:active { background: var(--primary-press); }
+      .btn-ghost { background: #ffffff; color: var(--primary); border: 1px solid rgba(47, 99, 199, 0.35); }
+      .btn-ghost:active { background: rgba(47, 99, 199, 0.08); }
+      .btn-wide {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+      }
+      .content {
+        padding: 14px;
+        color: var(--text);
+      }
+      .content h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 900;
+      }
+      .notice {
+        background: rgba(47, 99, 199, 0.06);
+        border: 1px solid rgba(47, 99, 199, 0.20);
+        border-radius: 12px;
+        padding: 12px;
+        color: #1f3b78;
+        font-weight: 650;
+      }
+      .notice p { margin: 8px 0; }
+      .field {
+        margin-top: 12px;
+      }
+      .label {
+        color: var(--muted);
+        font-weight: 800;
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      textarea {
+        width: 100%;
+        resize: none;
+        min-height: 84px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        outline: none;
+        box-shadow: inset 0 1px 0 rgba(17, 24, 39, 0.02);
+      }
+      textarea:focus { border-color: rgba(47, 99, 199, 0.55); box-shadow: 0 0 0 3px rgba(47, 99, 199, 0.12); }
+      .center {
+        text-align: center;
+        padding: 18px 14px 6px;
+      }
+      .ok-title {
+        font-size: 22px;
+        font-weight: 950;
+        margin: 0;
+      }
+      .ok-sub {
+        margin: 10px 0 0;
+        color: var(--danger);
+        font-weight: 950;
+      }
+      .topbar {
+        display: flex;
+        justify-content: flex-end;
+        padding: 10px 2px 2px;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(16px + var(--safe-bottom));
+        transform: translateX(-50%);
+        background: rgba(17, 24, 39, 0.92);
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 13px;
+        max-width: calc(100% - 24px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 160ms ease;
+      }
+      .toast.is-show { opacity: 1; }
+      @media (max-width: 360px) {
+        .row { grid-template-columns: 64px 1fr auto; }
+        .hero-title { font-size: 20px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="frame" aria-live="polite">
+        <section class="page is-active" data-page="confirm">
+          <div class="card hero">
+            <div>
+              <div class="hero-title">到课确认</div>
+              <div class="hero-sub" id="confirmCourseLabel">课程名字</div>
+            </div>
+            <svg class="mascot" viewBox="0 0 96 96" aria-hidden="true">
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#3aa7ff" />
+                  <stop offset="1" stop-color="#2f63c7" />
+                </linearGradient>
+              </defs>
+              <circle cx="48" cy="48" r="34" fill="url(#g1)" />
+              <circle cx="38" cy="42" r="6" fill="#fff" opacity="0.95" />
+              <circle cx="62" cy="42" r="6" fill="#fff" opacity="0.95" />
+              <circle cx="40" cy="44" r="2" fill="#1f2937" opacity="0.8" />
+              <circle cx="64" cy="44" r="2" fill="#1f2937" opacity="0.8" />
+              <path d="M32 58c8 9 24 9 32 0" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.95" />
+              <path d="M22 38c-6 2-10 7-10 13 0 7 6 13 14 14" fill="none" stroke="#3aa7ff" stroke-width="10" stroke-linecap="round" />
+              <path d="M74 38c6 2 10 7 10 13 0 7-6 13-14 14" fill="none" stroke="#3aa7ff" stroke-width="10" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <div class="section">
+            <div class="card">
+              <div class="course-name" id="confirmCourseName">课程名字</div>
+              <ul class="list" id="confirmList"></ul>
+              <div class="actions">
+                <button class="btn btn-primary" type="button" id="btnConfirmAttend">确认到课</button>
+                <button class="btn btn-ghost" type="button" id="btnCannotAttend">无法上课</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-page="cannot">
+          <div class="topbar">
+            <button class="btn btn-primary" type="button" id="btnBackFromCannot" style="padding: 8px 12px; border-radius: 10px;">返回</button>
+          </div>
+          <div class="card">
+            <div class="hero" style="padding-bottom: 10px;">
+              <div class="hero-title">无法上课</div>
+              <div style="width: 72px; height: 72px;"></div>
+            </div>
+            <div class="content">
+              <div class="notice" role="note">
+                <p>课前重要提醒：</p>
+                <p>[1] 课程与校内知识衔接性较强，同时会讲解「高频易错考点」，助力考试高分！</p>
+                <p>[2] 到课会有「惊喜福利」赠送，建议您进入教室先领取奖励，同时为孩子生成回放。</p>
+                <p>请选择无法上课的理由，我们会为您推荐合适的上课方式：</p>
+              </div>
+              <div class="field">
+                <div class="label">无法上课原因</div>
+                <textarea id="leaveReason" maxlength="120" placeholder="请输入原因（最多 120 字）"></textarea>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" type="button" id="btnSubmitLeave">确定请假</button>
+              <button class="btn btn-ghost" type="button" id="btnCancelLeave">不请假了</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-page="success">
+          <div class="card">
+            <div class="hero">
+              <div>
+                <div class="hero-title">请假成功！</div>
+                <div class="hero-sub" style="color: var(--danger); font-weight: 950;">已帮您登记回放</div>
+              </div>
+              <svg class="mascot" viewBox="0 0 96 96" aria-hidden="true">
+                <defs>
+                  <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#3aa7ff" />
+                    <stop offset="1" stop-color="#2f63c7" />
+                  </linearGradient>
+                </defs>
+                <circle cx="48" cy="48" r="34" fill="url(#g2)" />
+                <path d="M28 44c5-6 9-9 20-9s15 3 20 9" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.95" />
+                <circle cx="36" cy="54" r="5" fill="#fff" opacity="0.95" />
+                <circle cx="60" cy="54" r="5" fill="#fff" opacity="0.95" />
+                <path d="M34 64c6 8 22 8 28 0" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.95" />
+              </svg>
+            </div>
+            <div class="content">
+              <h2>请假信息</h2>
+              <div class="notice" role="note" style="background: rgba(217, 45, 32, 0.06); border-color: rgba(217, 45, 32, 0.18); color: #7a1a13;">
+                <p id="successSummary">已登记回放。</p>
+              </div>
+            </div>
+            <div class="actions" style="grid-template-columns: 1fr;">
+              <button class="btn btn-primary btn-wide" type="button" id="btnBackHome">返回到课确认</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-page="done">
+          <div class="topbar">
+            <button class="btn btn-primary" type="button" id="btnBackFromDone" style="padding: 8px 12px; border-radius: 10px;">返回</button>
+          </div>
+          <div class="card">
+            <div class="center">
+              <p class="ok-title">到课信息已确认</p>
+            </div>
+            <div class="content" style="padding-top: 6px;">
+              <ul class="list" id="doneList"></ul>
+            </div>
+            <div class="actions" style="grid-template-columns: 1fr;">
+              <button class="btn btn-primary btn-wide" type="button" id="btnFinalizeAttend">确认到课/不请假了</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const state = {
+        courseName: "课程名字",
+        lessons: [
+          { index: 1, time: "上课时间", outline: "大纲名字", status: "upcoming" },
+          { index: 2, time: "上课时间", outline: "大纲名字", status: "upcoming" },
+          { index: 3, time: "上课时间", outline: "大纲名字", status: "upcoming" },
+          { index: 4, time: "上课时间", outline: "大纲名字", status: "upcoming" }
+        ],
+        leaveReason: ""
+      };
+
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+      function showPage(name) {
+        $$(".page").forEach((p) => p.classList.toggle("is-active", p.dataset.page === name));
+        document.title = {
+          confirm: "到课确认",
+          cannot: "无法上课",
+          success: "请假成功",
+          done: "到课信息已确认"
+        }[name] || "到课确认";
+      }
+
+      function badgeFor(status) {
+        if (status === "attending") return { text: "确认参加", cls: "success" };
+        if (status === "leave") return { text: "已请假", cls: "danger" };
+        if (status === "unfilled") return { text: "未填写", cls: "muted" };
+        return { text: "预计课", cls: "muted" };
+      }
+
+      function renderConfirm() {
+        $("#confirmCourseLabel").textContent = state.courseName;
+        $("#confirmCourseName").textContent = state.courseName;
+        const ul = $("#confirmList");
+        ul.innerHTML = "";
+
+        state.lessons.forEach((l) => {
+          const { text, cls } = badgeFor(l.status);
+          const li = document.createElement("li");
+          li.className = "row";
+          li.innerHTML = `
+            <div class="row-left">第${l.index}节</div>
+            <div class="row-mid">${l.time}<small>${l.outline}</small></div>
+            <div><span class="badge ${cls}">${text}</span></div>
+          `;
+          ul.appendChild(li);
+        });
+      }
+
+      function renderDone() {
+        const ul = $("#doneList");
+        ul.innerHTML = "";
+        state.lessons.forEach((l) => {
+          const li = document.createElement("li");
+          li.className = "row";
+          li.innerHTML = `
+            <div class="row-left">第${l.index}节</div>
+            <div class="row-mid">${l.time}<small>${l.outline}</small></div>
+            <div><span class="badge success">确认参加</span></div>
+          `;
+          ul.appendChild(li);
+        });
+      }
+
+      function toast(msg) {
+        const el = $("#toast");
+        el.textContent = msg;
+        el.classList.add("is-show");
+        window.clearTimeout(toast._t);
+        toast._t = window.setTimeout(() => el.classList.remove("is-show"), 1400);
+      }
+
+      function init() {
+        renderConfirm();
+
+        $("#btnCannotAttend").addEventListener("click", () => showPage("cannot"));
+        $("#btnBackFromCannot").addEventListener("click", () => showPage("confirm"));
+        $("#btnCancelLeave").addEventListener("click", () => {
+          $("#leaveReason").value = "";
+          state.leaveReason = "";
+          showPage("confirm");
+        });
+
+        $("#btnSubmitLeave").addEventListener("click", () => {
+          state.leaveReason = ($("#leaveReason").value || "").trim();
+          state.lessons.forEach((l) => (l.status = "leave"));
+          $("#successSummary").textContent = state.leaveReason
+            ? `已登记回放。原因：${state.leaveReason}`
+            : "已登记回放。";
+          renderConfirm();
+          showPage("success");
+        });
+
+        $("#btnBackHome").addEventListener("click", () => showPage("confirm"));
+
+        $("#btnConfirmAttend").addEventListener("click", () => {
+          state.lessons.forEach((l) => (l.status = "attending"));
+          renderConfirm();
+          renderDone();
+          showPage("done");
+        });
+
+        $("#btnBackFromDone").addEventListener("click", () => showPage("confirm"));
+        $("#btnFinalizeAttend").addEventListener("click", () => {
+          toast("已确认到课");
+          showPage("confirm");
+        });
+      }
+
+      init();
+    </script>
+  </body>
+</html>

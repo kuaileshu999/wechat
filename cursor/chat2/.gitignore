@@ -1,0 +1,14 @@
+node_modules/
+.env
+deploy/.env
+deploy/release/
+data/
+scripts/chat3/
+__pycache__/
+*.pyc
+target/
+dist/
+frontend/dist/
+.idea/
+*.iml
+.DS_Store

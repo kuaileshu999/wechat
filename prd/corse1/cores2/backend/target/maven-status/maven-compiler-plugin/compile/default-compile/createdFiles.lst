@@ -1,0 +1,7 @@
+com/example/demo/model/Student.class
+com/example/demo/DemoApplication.class
+com/example/demo/repository/UserRepository.class
+com/example/demo/model/User.class
+com/example/demo/controller/LoginController.class
+com/example/demo/model/LoginRequest.class
+com/example/demo/model/LoginResponse.class
