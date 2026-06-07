@@ -53,6 +53,13 @@ export const hostingConfigApi = {
   end: (id, operatorId) => http.post(`/hosting-configs/${id}/end`, { operatorId }),
 }
 
+export const hostingAssignmentApi = {
+  list: (params) => http.get('/hosting-assignments', { params }).then(normalizePage),
+  stats: () => http.get('/hosting-assignments/stats'),
+  release: (id, operatorId) => http.post(`/hosting-assignments/${id}/release`, { operatorId }),
+  reactivate: (id, operatorId) => http.post(`/hosting-assignments/${id}/reactivate`, { operatorId }),
+}
+
 export const conversationApi = {
   list: (params) => http.get('/conversations', { params }).then(normalizePage),
   stats: (handlerUserId) => http.get('/conversations/stats', { params: { handlerUserId } }),

@@ -110,7 +110,7 @@ Base URL: `http://localhost:8080`
   "scheduledStartAt": null,
   "description": "张老师外出培训，消息由李婷接管",
   "createdBy": 1,
-  "tutorIds": [1, 2]
+  "accountIds": [1, 3]
 }
 ```
 
@@ -118,12 +118,31 @@ Base URL: `http://localhost:8080`
 |------|------|
 | effectiveType | 1-立即生效 2-定时生效 |
 | scheduledStartAt | 定时生效时间（effectiveType=2 时必填） |
-| tutorIds | 被托管的辅导老师 ID 列表（整位老师，含其全部企微账号） |
+| accountIds | 被托管的企微账号 ID 列表（推荐） |
+| tutorIds | 兼容：整位老师 ID，将展开为其全部企微账号 |
 
 **业务规则**
 
-- 已被他人托管的辅导老师会自动跳过，并写入 `skipReason`
+- 已被他人托管的企微账号会自动跳过，并写入 `skipReason`
 - `effectiveType=1` 时创建后立即生效
+
+### GET /api/hosting-assignments
+
+分页查询账号级托管记录。
+
+**Query：** `keyword`、`status`（1-接管中 2-已解除）、`accountId`、`page`、`pageSize`
+
+### GET /api/hosting-assignments/stats
+
+列表页统计卡片数据。
+
+### POST /api/hosting-assignments/{id}/release
+
+解除单个账号接管。请求体：`{ "operatorId": 1 }`
+
+### POST /api/hosting-assignments/{id}/reactivate
+
+重新接管已解除账号。请求体：`{ "operatorId": 1 }`
 
 ### POST /api/hosting-configs/{id}/activate
 
@@ -303,7 +322,7 @@ curl http://localhost:8080/api/tutors
 # 4. 创建托管（立即生效）
 curl -X POST http://localhost:8080/api/hosting-configs \
   -H 'Content-Type: application/json' \
-  -d '{"takeoverManagerId":1,"effectiveType":1,"description":"测试托管","createdBy":1,"tutorIds":[1]}'
+  -d '{"takeoverManagerId":1,"effectiveType":1,"description":"测试托管","createdBy":1,"accountIds":[1]}'
 
 # 5. 查看工作台会话
 curl "http://localhost:8080/api/conversations?handlerUserId=2"
@@ -331,4 +350,5 @@ server:
 ```
 
 数据库初始化脚本：`sql/schema.sql`  
-测试数据：服务首次启动时自动写入（`DataInitializer`）。
+演示数据脚本：`sql/seed.sql`（与 `DataInitializer` + `LitingWorkbenchSeeder` 一致）  
+也可在服务首次启动时自动写入（`DataInitializer`）。

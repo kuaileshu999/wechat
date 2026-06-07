@@ -32,12 +32,19 @@ else
 fi
 
 echo ""
+echo "==> 2/5 数据库结构迁移"
+bash "$ROOT/deploy/migrate-db.sh"
+
+echo ""
+echo "==> 3/5 构建后端"
 bash "$ROOT/deploy/build-backend.sh"
 
 echo ""
+echo "==> 4/5 构建前端"
 bash "$ROOT/deploy/build-frontend.sh"
 
 echo ""
+echo "==> 5/5 重启后端"
 bash "$ROOT/deploy/restart-backend.sh"
 
 DEPLOY_HOST="${DEPLOY_HOST:-120.26.194.111}"

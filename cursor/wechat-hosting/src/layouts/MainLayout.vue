@@ -13,7 +13,7 @@
           <span>消息工作台</span>
         </el-menu-item>
         <el-menu-item v-if="isAdmin" index="/hosting-config">
-          <span>接管配置</span>
+          <span>分配账号</span>
         </el-menu-item>
         <el-menu-item v-if="isAdmin" index="/tutors">
           <span>辅导老师管理</span>

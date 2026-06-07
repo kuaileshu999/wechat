@@ -20,10 +20,14 @@ public class HostingConfigService {
     private static final int CONFIG_TUTOR_PENDING = 1;
     private static final int CONFIG_TUTOR_SKIPPED = 0;
     private static final int CONFIG_TUTOR_ACTIVE = 2;
+    private static final int CONFIG_ACCOUNT_PENDING = 1;
+    private static final int CONFIG_ACCOUNT_SKIPPED = 0;
+    private static final int CONFIG_ACCOUNT_ACTIVE = 2;
     private static final int ACTION_START = 1;
 
     private final HostingConfigRepository hostingConfigRepository;
     private final HostingConfigTutorRepository hostingConfigTutorRepository;
+    private final HostingConfigAccountRepository hostingConfigAccountRepository;
     private final HostingAssignmentRepository hostingAssignmentRepository;
     private final HostingTransferLogRepository hostingTransferLogRepository;
     private final TakeoverManagerRepository takeoverManagerRepository;
@@ -36,6 +40,7 @@ public class HostingConfigService {
 
     public HostingConfigService(HostingConfigRepository hostingConfigRepository,
                                 HostingConfigTutorRepository hostingConfigTutorRepository,
+                                HostingConfigAccountRepository hostingConfigAccountRepository,
                                 HostingAssignmentRepository hostingAssignmentRepository,
                                 HostingTransferLogRepository hostingTransferLogRepository,
                                 TakeoverManagerRepository takeoverManagerRepository,
@@ -47,6 +52,7 @@ public class HostingConfigService {
                                 TeachingGroupRepository teachingGroupRepository) {
         this.hostingConfigRepository = hostingConfigRepository;
         this.hostingConfigTutorRepository = hostingConfigTutorRepository;
+        this.hostingConfigAccountRepository = hostingConfigAccountRepository;
         this.hostingAssignmentRepository = hostingAssignmentRepository;
         this.hostingTransferLogRepository = hostingTransferLogRepository;
         this.takeoverManagerRepository = takeoverManagerRepository;
@@ -77,31 +83,51 @@ public class HostingConfigService {
         sysUserRepository.findById(request.createdBy())
                 .orElseThrow(() -> new IllegalArgumentException("创建人不存在"));
 
+        List<TutorWechatAccount> accounts = resolveAccounts(request);
+        if (accounts.isEmpty()) {
+            throw new IllegalArgumentException("请至少选择一个企微账号");
+        }
+
         HostingConfig config = new HostingConfig();
         config.setTakeoverManagerId(request.takeoverManagerId());
         config.setEffectiveType(request.effectiveType());
         config.setScheduledStartAt(request.scheduledStartAt());
         config.setDescription(request.description());
         config.setCreatedBy(request.createdBy());
-        if (Objects.equals(request.effectiveType(), EFFECTIVE_IMMEDIATE)) {
-            config.setStatus(HostingStatus.PENDING);
-        } else {
-            if (request.scheduledStartAt() == null) {
-                throw new IllegalArgumentException("定时生效必须填写生效时间");
-            }
-            config.setStatus(HostingStatus.PENDING);
+        if (Objects.equals(request.effectiveType(), EFFECTIVE_SCHEDULED) && request.scheduledStartAt() == null) {
+            throw new IllegalArgumentException("定时生效必须填写生效时间");
         }
+        config.setStatus(HostingStatus.PENDING);
         hostingConfigRepository.save(config);
 
-        for (Long tutorId : request.tutorIds()) {
+        Set<Long> tutorIds = new LinkedHashSet<>();
+        for (TutorWechatAccount account : accounts) {
+            tutorIds.add(account.getTutorId());
+            HostingConfigAccount item = new HostingConfigAccount();
+            item.setHostingConfigId(config.getId());
+            item.setTutorId(account.getTutorId());
+            item.setTutorAccountId(account.getId());
+            if (hostingAssignmentRepository.existsByTutorAccountIdAndStatus(account.getId(), ASSIGNMENT_ACTIVE)) {
+                item.setStatus(CONFIG_ACCOUNT_SKIPPED);
+                item.setSkipReason("该企微账号已被他人托管");
+            } else {
+                item.setStatus(CONFIG_ACCOUNT_PENDING);
+            }
+            hostingConfigAccountRepository.save(item);
+        }
+
+        for (Long tutorId : tutorIds) {
             tutorRepository.findById(tutorId)
                     .orElseThrow(() -> new IllegalArgumentException("辅导老师不存在: " + tutorId));
             HostingConfigTutor item = new HostingConfigTutor();
             item.setHostingConfigId(config.getId());
             item.setTutorId(tutorId);
-            if (hostingAssignmentRepository.existsByTutorIdAndStatus(tutorId, ASSIGNMENT_ACTIVE)) {
+            boolean anyPending = hostingConfigAccountRepository.findByHostingConfigId(config.getId()).stream()
+                    .filter(a -> Objects.equals(a.getTutorId(), tutorId))
+                    .anyMatch(a -> a.getStatus() == CONFIG_ACCOUNT_PENDING);
+            if (!anyPending) {
                 item.setStatus(CONFIG_TUTOR_SKIPPED);
-                item.setSkipReason("该辅导老师已被他人托管");
+                item.setSkipReason("所选账号均已被他人托管");
             } else {
                 item.setStatus(CONFIG_TUTOR_PENDING);
             }
@@ -130,38 +156,52 @@ public class HostingConfigService {
         SysUser managerUser = sysUserRepository.findById(manager.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("接管者用户不存在"));
 
-        List<HostingConfigTutor> items = hostingConfigTutorRepository.findByHostingConfigId(configId);
-        for (HostingConfigTutor item : items) {
-            if (item.getStatus() == CONFIG_TUTOR_SKIPPED) {
+        List<HostingConfigAccount> accountItems = hostingConfigAccountRepository.findByHostingConfigId(configId);
+        Set<Long> loggedTutorIds = new HashSet<>();
+        for (HostingConfigAccount item : accountItems) {
+            if (item.getStatus() == CONFIG_ACCOUNT_SKIPPED) {
                 continue;
             }
-            if (hostingAssignmentRepository.existsByTutorIdAndStatus(item.getTutorId(), ASSIGNMENT_ACTIVE)) {
-                item.setStatus(CONFIG_TUTOR_SKIPPED);
-                item.setSkipReason("该辅导老师已被他人托管");
-                hostingConfigTutorRepository.save(item);
+            if (hostingAssignmentRepository.existsByTutorAccountIdAndStatus(item.getTutorAccountId(), ASSIGNMENT_ACTIVE)) {
+                item.setStatus(CONFIG_ACCOUNT_SKIPPED);
+                item.setSkipReason("该企微账号已被他人托管");
+                hostingConfigAccountRepository.save(item);
                 continue;
             }
 
             HostingAssignment assignment = new HostingAssignment();
             assignment.setHostingConfigId(configId);
             assignment.setTutorId(item.getTutorId());
+            assignment.setTutorAccountId(item.getTutorAccountId());
             assignment.setTakeoverManagerId(config.getTakeoverManagerId());
             assignment.setStartedAt(LocalDateTime.now());
             assignment.setStatus(ASSIGNMENT_ACTIVE);
             hostingAssignmentRepository.save(assignment);
 
-            initConversationHandlers(item.getTutorId(), assignment.getId(), managerUser.getId());
+            initConversationHandlers(item.getTutorAccountId(), assignment.getId(), managerUser.getId());
 
-            item.setStatus(CONFIG_TUTOR_ACTIVE);
-            hostingConfigTutorRepository.save(item);
+            item.setStatus(CONFIG_ACCOUNT_ACTIVE);
+            hostingConfigAccountRepository.save(item);
 
-            HostingTransferLog log = new HostingTransferLog();
-            log.setTutorId(item.getTutorId());
-            log.setActionType(ACTION_START);
-            log.setToHandlerUserId(managerUser.getId());
-            log.setOperatorId(operatorId);
-            log.setRemark("开始托管");
-            hostingTransferLogRepository.save(log);
+            if (loggedTutorIds.add(item.getTutorId())) {
+                HostingTransferLog log = new HostingTransferLog();
+                log.setTutorId(item.getTutorId());
+                log.setActionType(ACTION_START);
+                log.setToHandlerUserId(managerUser.getId());
+                log.setOperatorId(operatorId);
+                log.setRemark("开始托管");
+                hostingTransferLogRepository.save(log);
+            }
+        }
+
+        for (HostingConfigTutor tutorItem : hostingConfigTutorRepository.findByHostingConfigId(configId)) {
+            boolean anyActive = hostingConfigAccountRepository.findByHostingConfigId(configId).stream()
+                    .filter(a -> Objects.equals(a.getTutorId(), tutorItem.getTutorId()))
+                    .anyMatch(a -> a.getStatus() == CONFIG_ACCOUNT_ACTIVE);
+            if (anyActive) {
+                tutorItem.setStatus(CONFIG_TUTOR_ACTIVE);
+                hostingConfigTutorRepository.save(tutorItem);
+            }
         }
 
         config.setStatus(HostingStatus.ACTIVE);
@@ -214,14 +254,23 @@ public class HostingConfigService {
         }
     }
 
-    private void initConversationHandlers(Long tutorId, Long assignmentId, Long handlerUserId) {
-        List<Long> accountIds = accountRepository.findByTutorIdAndStatus(tutorId, 1)
-                .stream().map(TutorWechatAccount::getId).toList();
-        if (accountIds.isEmpty()) {
-            return;
+    private List<TutorWechatAccount> resolveAccounts(CreateHostingConfigRequest request) {
+        if (request.accountIds() != null && !request.accountIds().isEmpty()) {
+            List<TutorWechatAccount> accounts = accountRepository.findAllById(request.accountIds());
+            if (accounts.size() != request.accountIds().size()) {
+                throw new IllegalArgumentException("存在无效的企微账号");
+            }
+            return accounts.stream().filter(a -> a.getStatus() == 1).toList();
         }
+        if (request.tutorIds() != null && !request.tutorIds().isEmpty()) {
+            return accountRepository.findByTutorIdInAndStatus(request.tutorIds(), 1);
+        }
+        return List.of();
+    }
+
+    private void initConversationHandlers(Long accountId, Long assignmentId, Long handlerUserId) {
         List<Conversation> conversations = conversationRepository
-                .findByTutorAccountIdInAndStatus(accountIds, 1);
+                .findByTutorAccountIdInAndStatus(List.of(accountId), 1);
         for (Conversation conversation : conversations) {
             ConversationHandler handler = conversationHandlerRepository
                     .findByConversationId(conversation.getId())

@@ -293,12 +293,31 @@ CREATE TABLE hosting_config_tutor (
 ) ENGINE=InnoDB COMMENT='接管配置-辅导老师关联';
 
 -- ------------------------------------------------------------
--- 16. 当前生效托管关系（一辅导老师同时仅一条 status=1）
+-- 15b. 配置所选企微账号（账号级托管）
+-- ------------------------------------------------------------
+CREATE TABLE hosting_config_account (
+  id                BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  hosting_config_id BIGINT       NOT NULL COMMENT '配置ID',
+  tutor_id          BIGINT       NOT NULL COMMENT '辅导老师ID',
+  tutor_account_id  BIGINT       NOT NULL COMMENT '企微账号ID',
+  skip_reason       VARCHAR(128) DEFAULT NULL COMMENT '跳过原因(如已被他人托管)',
+  status            TINYINT      NOT NULL DEFAULT 1 COMMENT '0-跳过 1-待生效 2-已生效',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_config_account (hosting_config_id, tutor_account_id),
+  KEY idx_account (tutor_account_id),
+  CONSTRAINT fk_hca_config FOREIGN KEY (hosting_config_id) REFERENCES hosting_config (id),
+  CONSTRAINT fk_hca_tutor FOREIGN KEY (tutor_id) REFERENCES tutor (id),
+  CONSTRAINT fk_hca_account FOREIGN KEY (tutor_account_id) REFERENCES tutor_wechat_account (id)
+) ENGINE=InnoDB COMMENT='接管配置-企微账号关联';
+
+-- ------------------------------------------------------------
+-- 16. 当前生效托管关系（一企微账号同时仅一条 status=1）
 -- ------------------------------------------------------------
 CREATE TABLE hosting_assignment (
   id                  BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
   hosting_config_id   BIGINT   NOT NULL COMMENT '来源配置',
   tutor_id            BIGINT   NOT NULL COMMENT '被托管辅导老师',
+  tutor_account_id    BIGINT   DEFAULT NULL COMMENT '被托管企微账号',
   takeover_manager_id BIGINT   NOT NULL COMMENT '接管者',
   started_at          DATETIME NOT NULL COMMENT '生效开始',
   ended_at            DATETIME DEFAULT NULL COMMENT '手动结束时间',
@@ -308,12 +327,14 @@ CREATE TABLE hosting_assignment (
   PRIMARY KEY (id),
   KEY idx_manager_status (takeover_manager_id, status),
   KEY idx_tutor_status (tutor_id, status),
+  KEY idx_account_status (tutor_account_id, status),
   CONSTRAINT fk_assign_config FOREIGN KEY (hosting_config_id) REFERENCES hosting_config (id),
   CONSTRAINT fk_assign_tutor FOREIGN KEY (tutor_id) REFERENCES tutor (id),
+  CONSTRAINT fk_assign_account FOREIGN KEY (tutor_account_id) REFERENCES tutor_wechat_account (id),
   CONSTRAINT fk_assign_manager FOREIGN KEY (takeover_manager_id) REFERENCES takeover_manager (id)
 ) ENGINE=InnoDB COMMENT='当前托管关系';
 
--- 业务层保证 tutor_id 在 status=1 时唯一
+-- 业务层保证 tutor_account_id 在 status=1 时唯一
 
 -- ------------------------------------------------------------
 -- 17. 转接记录

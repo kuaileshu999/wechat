@@ -7,4 +7,5 @@ public interface TutorRepository extends JpaRepository<Tutor, Long> {
     List<Tutor> findByStatus(Integer status);
     List<Tutor> findByTeachingGroupIdAndStatus(Long teachingGroupId, Integer status);
     Optional<Tutor> findByUserId(Long userId);
+    long countByStatus(Integer status);
 }

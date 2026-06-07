@@ -1,174 +1,150 @@
 <template>
-  <div class="config-page">
-    <el-alert
-      type="info"
-      :closable="false"
-      show-icon
-      title="选择辅导老师及接管者，支持立即生效或定时生效。已被他人托管的老师将自动跳过。托管包含该老师全部企微账号（私聊+群聊）。"
-      class="config-alert"
-    />
+  <div class="hosting-list-page">
+    <div class="stats-row">
+      <div v-for="item in statCards" :key="item.label" class="stat-card page-card">
+        <div class="stat-value">{{ item.value }}</div>
+        <div class="stat-label">{{ item.label }}</div>
+      </div>
+    </div>
 
-    <div class="config-body">
-      <section class="form-panel page-card">
-        <div class="panel-title">新建接管配置</div>
-
-        <el-form label-width="96px" class="config-form">
-          <el-form-item label="教研组">
-            <el-select v-model="filterGroupId" placeholder="全部教研组" clearable style="width: 100%" @change="loadTutors">
-              <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="辅导老师" required>
-            <el-checkbox-group v-model="selectedTutorIds" class="tutor-check-group">
-              <el-checkbox v-for="t in tutors" :key="t.id" :label="t.id" border>
-                <div class="tutor-card-inner">
-                  <div class="tutor-name">{{ t.name }}</div>
-                  <div class="tutor-sub">{{ t.teachingGroupName }} · {{ t.accountCount }} 个账号</div>
-                </div>
-              </el-checkbox>
-            </el-checkbox-group>
-            <div v-if="!tutors.length" class="empty-tip">暂无辅导老师</div>
-            <div v-else class="selected-tip">已选 {{ selectedTutorIds.length }} 位辅导老师</div>
-          </el-form-item>
-
-          <el-form-item label="接管者" required>
-            <el-select v-model="takeoverManagerId" placeholder="选择接管者" filterable style="width: 100%">
-              <el-option
-                v-for="m in managers"
-                :key="m.id"
-                :label="`${m.name}（已接管 ${m.activeTutorCount}/${m.maxTutorCount}）`"
-                :value="m.id"
-              />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="生效方式" required>
-            <el-radio-group v-model="effectiveType">
-              <el-radio :value="1">立即生效</el-radio>
-              <el-radio :value="2">定时生效</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <el-form-item v-if="effectiveType === 2" label="生效时间" required>
-            <el-date-picker
-              v-model="scheduledStartAt"
-              type="datetime"
-              placeholder="选择生效时间"
-              style="width: 100%"
-              value-format="YYYY-MM-DDTHH:mm:ss"
+    <div class="list-panel page-card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <el-input
+            v-model="keyword"
+            placeholder="搜索辅导老师或接管者"
+            clearable
+            style="width: 240px"
+            @keyup.enter="loadList"
+            @clear="loadList"
+          />
+          <el-select v-model="statusFilter" placeholder="全部状态" clearable style="width: 140px" @change="loadList">
+            <el-option label="接管中" :value="1" />
+            <el-option label="已解除" :value="2" />
+          </el-select>
+          <el-select
+            v-model="accountFilter"
+            placeholder="全部账号"
+            clearable
+            filterable
+            style="width: 180px"
+            @change="loadList"
+          >
+            <el-option
+              v-for="acc in accountOptions"
+              :key="acc.id"
+              :label="acc.accountName"
+              :value="acc.id"
             />
-          </el-form-item>
-
-          <el-form-item label="接管说明">
-            <el-input v-model="description" type="textarea" :rows="3" placeholder="可选" />
-          </el-form-item>
-
-          <el-form-item>
-            <el-button
-              type="primary"
-              :loading="saving"
-              :disabled="!selectedTutorIds.length || !takeoverManagerId"
-              @click="handleCreate"
-            >
-              创建配置
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </section>
-
-      <section class="list-panel page-card">
-        <div class="panel-title">
-          配置列表
-          <span class="count">共 {{ configs.length }} 条</span>
+          </el-select>
+          <el-button @click="loadList">查询</el-button>
         </div>
-        <el-table v-loading="loading" :data="configs" border stripe height="100%" size="small">
-          <el-table-column prop="id" label="ID" width="56" />
-          <el-table-column prop="takeoverManagerName" label="接管者" width="88" />
-          <el-table-column label="辅导老师" min-width="140">
-            <template #default="{ row }">
-              <el-tag v-for="t in row.tutors" :key="t.tutorId" size="small" class="mr-tag">
-                {{ t.tutorName }}
-                <span v-if="t.status === 0" class="skip">(跳过)</span>
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="生效方式" width="88">
-            <template #default="{ row }">
-              {{ row.effectiveType === 1 ? '立即' : '定时' }}
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="80">
-            <template #default="{ row }">
-              <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="description" label="说明" min-width="120" show-overflow-tooltip />
-          <el-table-column label="操作" width="140" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                v-if="row.status === 1"
-                link
-                type="primary"
-                size="small"
-                @click="handleActivate(row.id)"
-              >
-                激活
-              </el-button>
-              <el-button
-                v-if="row.status === 2"
-                link
-                type="danger"
-                size="small"
-                @click="handleEnd(row.id)"
-              >
-                结束
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </section>
+        <el-button type="primary" @click="goCreate">+ 新建分配</el-button>
+      </div>
+
+      <el-table v-loading="loading" :data="list" border stripe>
+        <el-table-column label="辅导老师" min-width="160">
+          <template #default="{ row }">
+            <div class="cell-main">{{ row.tutorName }}</div>
+            <div class="cell-sub">{{ row.teachingGroupName }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="企微账号" min-width="180">
+          <template #default="{ row }">
+            <div class="cell-main">{{ row.accountName }}</div>
+            <div class="cell-sub">{{ row.wechatUserid }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="接管者" min-width="120">
+          <template #default="{ row }">
+            <div class="cell-main">{{ row.takeoverManagerName }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="生效时间" width="170">
+          <template #default="{ row }">
+            {{ formatTime(row.startedAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'warning'" size="small">
+              {{ row.status === 1 ? '接管中' : '已解除' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button v-if="row.status === 1" link type="primary" size="small" @click="handleRelease(row)">
+              解除接管
+            </el-button>
+            <el-button v-else link type="primary" size="small" @click="handleReactivate(row)">
+              重新接管
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="pager">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          layout="total, prev, pager, next"
+          @current-change="loadList"
+          @size-change="loadList"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { hostingConfigApi, takeoverManagerApi, teachingGroupApi, tutorApi } from '../api'
+import { hostingAssignmentApi, tutorApi } from '../api'
 import { getUser } from '../utils/auth'
 
+const router = useRouter()
 const loading = ref(false)
-const saving = ref(false)
-const configs = ref([])
-const tutors = ref([])
-const managers = ref([])
-const groups = ref([])
-const filterGroupId = ref(null)
-const selectedTutorIds = ref([])
-const takeoverManagerId = ref(null)
-const effectiveType = ref(1)
-const scheduledStartAt = ref(null)
-const description = ref('')
+const list = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
+const keyword = ref('')
+const statusFilter = ref(null)
+const accountFilter = ref(null)
+const accountOptions = ref([])
+const stats = ref({ activeCount: 0, tutorCount: 0, managerCount: 0, todayMessageCount: 0 })
 
-async function loadGroups() {
-  groups.value = await teachingGroupApi.list()
+const statCards = computed(() => [
+  { label: '当前接管中', value: stats.value.activeCount },
+  { label: '辅导老师', value: stats.value.tutorCount },
+  { label: '接管者', value: stats.value.managerCount },
+  { label: '今日接管消息', value: stats.value.todayMessageCount },
+])
+
+async function loadStats() {
+  stats.value = await hostingAssignmentApi.stats()
 }
 
-async function loadTutors() {
-  tutors.value = await tutorApi.list(
-    filterGroupId.value ? { teachingGroupId: filterGroupId.value } : undefined
-  )
+async function loadAccountOptions() {
+  const tutors = await tutorApi.list()
+  accountOptions.value = tutors.flatMap((t) => t.accounts || [])
 }
 
-async function loadManagers() {
-  managers.value = await takeoverManagerApi.list()
-}
-
-async function loadConfigs() {
+async function loadList() {
   loading.value = true
   try {
-    configs.value = await hostingConfigApi.list()
+    const data = await hostingAssignmentApi.list({
+      keyword: keyword.value || undefined,
+      status: statusFilter.value ?? undefined,
+      accountId: accountFilter.value ?? undefined,
+      page: page.value,
+      pageSize: pageSize.value,
+    })
+    list.value = data.list
+    total.value = data.total
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -176,133 +152,107 @@ async function loadConfigs() {
   }
 }
 
-async function handleCreate() {
-  saving.value = true
-  try {
-    await hostingConfigApi.create({
-      takeoverManagerId: takeoverManagerId.value,
-      effectiveType: effectiveType.value,
-      scheduledStartAt: effectiveType.value === 2 ? scheduledStartAt.value : null,
-      description: description.value || undefined,
-      createdBy: getUser().userId,
-      tutorIds: selectedTutorIds.value,
-    })
-    ElMessage.success('创建成功')
-    selectedTutorIds.value = []
-    description.value = ''
-    await loadConfigs()
-  } catch (e) {
-    ElMessage.error(e.message)
-  } finally {
-    saving.value = false
-  }
+function goCreate() {
+  router.push('/hosting-config/create')
 }
 
-async function handleActivate(id) {
-  try {
-    await hostingConfigApi.activate(id, getUser().userId)
-    ElMessage.success('已激活')
-    await loadConfigs()
-  } catch (e) {
-    ElMessage.error(e.message)
-  }
+function formatTime(value) {
+  if (!value) return '-'
+  return String(value).replace('T', ' ').slice(0, 16)
 }
 
-async function handleEnd(id) {
+async function handleRelease(row) {
   try {
-    await ElMessageBox.confirm('确认结束该托管配置？', '提示', { type: 'warning' })
-    await hostingConfigApi.end(id, getUser().userId)
-    ElMessage.success('已结束托管')
-    await loadConfigs()
+    await ElMessageBox.confirm(`确认解除「${row.accountName}」的接管？`, '提示', { type: 'warning' })
+    await hostingAssignmentApi.release(row.id, getUser().userId)
+    ElMessage.success('已解除接管')
+    await Promise.all([loadList(), loadStats()])
   } catch (e) {
     if (e !== 'cancel') ElMessage.error(e.message || '操作失败')
   }
 }
 
-function statusLabel(status) {
-  return ['草稿', '待生效', '生效中', '已结束', '已取消'][status] || '未知'
-}
-
-function statusTagType(status) {
-  if (status === 2) return 'success'
-  if (status === 3 || status === 4) return 'info'
-  return 'warning'
+async function handleReactivate(row) {
+  try {
+    await hostingAssignmentApi.reactivate(row.id, getUser().userId)
+    ElMessage.success('已重新接管')
+    await Promise.all([loadList(), loadStats()])
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
 }
 
 onMounted(async () => {
-  await Promise.all([loadGroups(), loadTutors(), loadManagers(), loadConfigs()])
+  await Promise.all([loadStats(), loadAccountOptions(), loadList()])
 })
 </script>
 
 <style scoped>
-.config-page {
+.hosting-list-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   height: calc(100vh - 56px - 40px);
 }
 
-.config-body {
-  flex: 1;
+.stats-row {
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  min-height: 0;
 }
 
-.form-panel,
-.list-panel {
-  overflow: auto;
+.stat-card {
+  padding: 20px 24px;
 }
 
-.panel-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 16px;
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
 }
 
-.panel-title .count {
-  font-size: 13px;
+.stat-label {
+  margin-top: 8px;
+  font-size: 14px;
   color: var(--text-secondary);
-  font-weight: 400;
-  margin-left: 8px;
 }
 
-.tutor-check-group {
+.list-panel {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.tutor-check-group :deep(.el-checkbox) {
-  margin-right: 0;
-  height: auto;
-  padding: 8px 12px;
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
 }
 
-.tutor-name {
-  font-weight: 600;
+.toolbar-left {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.tutor-sub {
+.cell-main {
+  font-weight: 500;
+}
+
+.cell-sub {
   font-size: 12px;
   color: var(--text-secondary);
+  margin-top: 2px;
 }
 
-.selected-tip,
-.empty-tip {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 8px;
-}
-
-.mr-tag {
-  margin-right: 4px;
-  margin-bottom: 4px;
-}
-
-.skip {
-  color: #ff4d4f;
+.pager {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

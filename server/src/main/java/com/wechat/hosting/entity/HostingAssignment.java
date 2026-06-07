@@ -17,6 +17,9 @@ public class HostingAssignment {
     @Column(name = "tutor_id", nullable = false)
     private Long tutorId;
 
+    @Column(name = "tutor_account_id")
+    private Long tutorAccountId;
+
     @Column(name = "takeover_manager_id", nullable = false)
     private Long takeoverManagerId;
 
@@ -56,6 +59,8 @@ public class HostingAssignment {
     public void setHostingConfigId(Long hostingConfigId) { this.hostingConfigId = hostingConfigId; }
     public Long getTutorId() { return tutorId; }
     public void setTutorId(Long tutorId) { this.tutorId = tutorId; }
+    public Long getTutorAccountId() { return tutorAccountId; }
+    public void setTutorAccountId(Long tutorAccountId) { this.tutorAccountId = tutorAccountId; }
     public Long getTakeoverManagerId() { return takeoverManagerId; }
     public void setTakeoverManagerId(Long takeoverManagerId) { this.takeoverManagerId = takeoverManagerId; }
     public LocalDateTime getStartedAt() { return startedAt; }

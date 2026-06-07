@@ -24,7 +24,13 @@ const routes = [
         path: 'hosting-config',
         name: 'HostingConfig',
         component: () => import('../views/HostingConfigView.vue'),
-        meta: { title: '接管配置', roles: [1] },
+        meta: { title: '分配账号', roles: [1] },
+      },
+      {
+        path: 'hosting-config/create',
+        name: 'HostingConfigCreate',
+        component: () => import('../views/HostingConfigCreateView.vue'),
+        meta: { title: '新建分配', roles: [1] },
       },
       {
         path: 'tutors',

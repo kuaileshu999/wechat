@@ -48,6 +48,7 @@ public class LitingWorkbenchSeeder implements CommandLineRunner {
     private final MessageReadStatusRepository messageReadStatusRepository;
     private final HostingConfigRepository hostingConfigRepository;
     private final HostingConfigTutorRepository hostingConfigTutorRepository;
+    private final HostingConfigAccountRepository hostingConfigAccountRepository;
     private final HostingAssignmentRepository hostingAssignmentRepository;
 
     public LitingWorkbenchSeeder(SysUserRepository sysUserRepository,
@@ -60,6 +61,7 @@ public class LitingWorkbenchSeeder implements CommandLineRunner {
                                  MessageReadStatusRepository messageReadStatusRepository,
                                  HostingConfigRepository hostingConfigRepository,
                                  HostingConfigTutorRepository hostingConfigTutorRepository,
+                                 HostingConfigAccountRepository hostingConfigAccountRepository,
                                  HostingAssignmentRepository hostingAssignmentRepository) {
         this.sysUserRepository = sysUserRepository;
         this.takeoverManagerRepository = takeoverManagerRepository;
@@ -71,6 +73,7 @@ public class LitingWorkbenchSeeder implements CommandLineRunner {
         this.messageReadStatusRepository = messageReadStatusRepository;
         this.hostingConfigRepository = hostingConfigRepository;
         this.hostingConfigTutorRepository = hostingConfigTutorRepository;
+        this.hostingConfigAccountRepository = hostingConfigAccountRepository;
         this.hostingAssignmentRepository = hostingAssignmentRepository;
     }
 
@@ -124,7 +127,7 @@ public class LitingWorkbenchSeeder implements CommandLineRunner {
             conversationRepository.save(conversation);
 
             HostingAssignment assignment = hostingAssignmentRepository
-                    .findByTutorIdAndStatus(demo.tutorId(), 1).orElse(null);
+                    .findByTutorAccountIdAndStatus(account.getId(), 1).orElse(null);
 
             ConversationHandler handler = new ConversationHandler();
             handler.setConversationId(conversation.getId());
@@ -148,9 +151,6 @@ public class LitingWorkbenchSeeder implements CommandLineRunner {
 
     private void ensureHostingForTutors(TakeoverManager manager, Long adminId, List<Long> tutorIds) {
         for (Long tutorId : tutorIds) {
-            if (hostingAssignmentRepository.existsByTutorIdAndStatus(tutorId, 1)) {
-                continue;
-            }
             Optional<HostingConfig> existingConfig = hostingConfigRepository.findAll().stream()
                     .filter(c -> c.getTakeoverManagerId().equals(manager.getId())
                             && c.getStatus() == HostingStatus.ACTIVE)
@@ -174,13 +174,29 @@ public class LitingWorkbenchSeeder implements CommandLineRunner {
                 hostingConfigTutorRepository.save(ct);
             }
 
-            HostingAssignment assignment = new HostingAssignment();
-            assignment.setHostingConfigId(config.getId());
-            assignment.setTutorId(tutorId);
-            assignment.setTakeoverManagerId(manager.getId());
-            assignment.setStartedAt(LocalDateTime.now());
-            assignment.setStatus(1);
-            hostingAssignmentRepository.save(assignment);
+            List<TutorWechatAccount> accounts = accountRepository.findByTutorIdAndStatus(tutorId, 1);
+            for (TutorWechatAccount account : accounts) {
+                if (hostingAssignmentRepository.existsByTutorAccountIdAndStatus(account.getId(), 1)) {
+                    continue;
+                }
+                if (hostingConfigAccountRepository.findByHostingConfigId(config.getId()).stream()
+                        .noneMatch(a -> a.getTutorAccountId().equals(account.getId()))) {
+                    HostingConfigAccount ca = new HostingConfigAccount();
+                    ca.setHostingConfigId(config.getId());
+                    ca.setTutorId(tutorId);
+                    ca.setTutorAccountId(account.getId());
+                    ca.setStatus(2);
+                    hostingConfigAccountRepository.save(ca);
+                }
+                HostingAssignment assignment = new HostingAssignment();
+                assignment.setHostingConfigId(config.getId());
+                assignment.setTutorId(tutorId);
+                assignment.setTutorAccountId(account.getId());
+                assignment.setTakeoverManagerId(manager.getId());
+                assignment.setStartedAt(LocalDateTime.now());
+                assignment.setStatus(1);
+                hostingAssignmentRepository.save(assignment);
+            }
         }
     }
 }

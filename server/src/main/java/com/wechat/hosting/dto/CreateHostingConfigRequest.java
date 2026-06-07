@@ -1,6 +1,5 @@
 package com.wechat.hosting.dto;
 
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -11,6 +10,7 @@ public record CreateHostingConfigRequest(
         LocalDateTime scheduledStartAt,
         String description,
         @NotNull Long createdBy,
-        @NotEmpty List<Long> tutorIds
+        List<Long> tutorIds,
+        List<Long> accountIds
 ) {
 }

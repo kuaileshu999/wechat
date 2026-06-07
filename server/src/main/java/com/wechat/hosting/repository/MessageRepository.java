@@ -11,4 +11,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Modifying
     @Query("DELETE FROM Message m WHERE m.sentAt < :before")
     int deleteBySentAtBefore(@Param("before") LocalDateTime before);
+
+    long countBySentAtBetween(LocalDateTime start, LocalDateTime end);
 }

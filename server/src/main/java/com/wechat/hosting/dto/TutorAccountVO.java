@@ -6,6 +6,7 @@ public record TutorAccountVO(
         String subject,
         String grade,
         Integer studentCount,
-        Integer status
+        Integer status,
+        Boolean hosted
 ) {
 }

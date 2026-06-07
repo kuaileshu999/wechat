@@ -7,7 +7,7 @@
 | 辅导老师 | 约 100 位，每人约 10 名学生 |
 | 沟通渠道 | 企业微信（调用企微 API 收发消息） |
 | 核心能力 | 部分「接管者」代为回复其他辅导老师的企微消息 |
-| 托管粒度 | **整位辅导老师**（名下所有企微账号、私聊 + 群聊一并托管） |
+| 托管粒度 | **企微账号级**（可按账号勾选；同一账号同时仅能被 1 位接管者托管） |
 | 约束 | 同一辅导老师同一时刻只能被 1 位接管者托管；托管生效后原辅导老师不可回复 |
 
 ---
@@ -17,7 +17,7 @@
 | # | 决策 |
 |---|------|
 | 1 | 辅导老师、接管者、管理员共用 `sys_user` |
-| 2 | 托管粒度：**整位辅导老师**（名下全部企微账号） |
+| 2 | 托管粒度：**企微账号级**（私聊与群聊随账号一并托管） |
 | 3 | 私聊与群聊**一起托管**，不单独配置 |
 | 4 | 学生阶段：**转化期 / 承接期 / 已结课**（值：1 / 2 / 3） |
 | 5 | 工作台「转接」= 将**单个聊天**转给其他老师处理 |
@@ -30,7 +30,7 @@
 
 | 系统模块（UI） | 主要涉及表 |
 |----------------|------------|
-| 接管配置 | `hosting_config`、`hosting_config_tutor`、`hosting_assignment` |
+| 接管配置 | `hosting_config`、`hosting_config_tutor`、`hosting_config_account`、`hosting_assignment` |
 | 辅导老师管理 | `tutor`、`tutor_wechat_account`、`student`、`student_tutor_relation` |
 | 接管者管理 | `takeover_manager` |
 | 转接记录 | `hosting_transfer_log` |
@@ -341,7 +341,7 @@ DELETE FROM message WHERE sent_at < DATE_SUB(NOW(), INTERVAL 1 MONTH);
 | 文件 | 说明 |
 |------|------|
 | `sql/schema.sql` | 可执行建库建表脚本（数据库名：`wechat`） |
-| `sql/cleanup_message.sql` | 消息 1 个月清理脚本（参考） |
+| `sql/migrate_account_allocation.sql` | 已有库升级：账号级托管字段与表 |
 
 ---
 

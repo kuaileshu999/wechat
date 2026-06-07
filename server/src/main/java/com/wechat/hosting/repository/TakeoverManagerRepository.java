@@ -6,4 +6,5 @@ import java.util.Optional;
 public interface TakeoverManagerRepository extends JpaRepository<TakeoverManager, Long> {
     List<TakeoverManager> findByStatus(Integer status);
     Optional<TakeoverManager> findByUserId(Long userId);
+    long countByStatus(Integer status);
 }

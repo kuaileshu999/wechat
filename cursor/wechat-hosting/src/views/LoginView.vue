@@ -25,7 +25,10 @@
         </el-button>
       </el-form>
       <div class="login-tip">
-        测试账号：admin / liting / zhang，密码均为 123456
+        测试账号密码均为 123456<br />
+        <strong>admin</strong>：分配账号、老师/接管者管理<br />
+        <strong>liting</strong>：消息工作台（接管者）<br />
+        <strong>zhang</strong>：辅导老师
       </div>
     </div>
   </div>
@@ -41,7 +44,7 @@ import { setUser } from '../utils/auth'
 const router = useRouter()
 const loading = ref(false)
 const form = reactive({
-  username: 'liting',
+  username: 'admin',
   password: '123456',
 })
 

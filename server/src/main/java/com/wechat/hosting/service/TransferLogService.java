@@ -44,10 +44,15 @@ public class TransferLogService {
     }
 
     private TransferLogVO toVO(HostingTransferLog log) {
-        Map<Long, SysUser> userMap = sysUserRepository.findByIdIn(
-                List.of(log.getFromHandlerUserId(), log.getToHandlerUserId(), log.getOperatorId())
-                        .stream().filter(id -> id != null).distinct().toList())
-                .stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        List<Long> userIds = java.util.stream.Stream.of(
+                        log.getFromHandlerUserId(), log.getToHandlerUserId(), log.getOperatorId())
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, SysUser> userMap = userIds.isEmpty()
+                ? Map.of()
+                : sysUserRepository.findByIdIn(userIds).stream()
+                .collect(Collectors.toMap(SysUser::getId, u -> u));
         String tutorName = tutorRepository.findById(log.getTutorId())
                 .flatMap(t -> sysUserRepository.findById(t.getUserId()))
                 .map(SysUser::getRealName).orElse("");
@@ -94,6 +99,9 @@ public class TransferLogService {
     }
 
     private String actionLabel(Integer actionType) {
+        if (actionType == null) {
+            return "未知";
+        }
         return switch (actionType) {
             case 1 -> "开始托管";
             case 2 -> "结束托管";

@@ -22,15 +22,18 @@ public class TutorService {
     private final TutorWechatAccountRepository accountRepository;
     private final SysUserRepository sysUserRepository;
     private final TeachingGroupRepository teachingGroupRepository;
+    private final HostingAssignmentService hostingAssignmentService;
 
     public TutorService(TutorRepository tutorRepository,
                         TutorWechatAccountRepository accountRepository,
                         SysUserRepository sysUserRepository,
-                        TeachingGroupRepository teachingGroupRepository) {
+                        TeachingGroupRepository teachingGroupRepository,
+                        HostingAssignmentService hostingAssignmentService) {
         this.tutorRepository = tutorRepository;
         this.accountRepository = accountRepository;
         this.sysUserRepository = sysUserRepository;
         this.teachingGroupRepository = teachingGroupRepository;
+        this.hostingAssignmentService = hostingAssignmentService;
     }
 
     public List<TutorVO> listAll(Long teachingGroupId) {
@@ -46,7 +49,8 @@ public class TutorService {
                 .findByTutorIdInAndStatus(tutors.stream().map(Tutor::getId).toList(), 1)
                 .stream()
                 .collect(Collectors.groupingBy(TutorWechatAccount::getTutorId));
-        return tutors.stream().map(t -> toVO(t, userMap, groupMap, accountMap)).toList();
+        Set<Long> hostedAccountIds = hostingAssignmentService.findActiveHostedAccountIds();
+        return tutors.stream().map(t -> toVO(t, userMap, groupMap, accountMap, hostedAccountIds)).toList();
     }
 
     public TutorVO getById(Long tutorId) {
@@ -56,7 +60,8 @@ public class TutorService {
         Map<Long, TeachingGroup> groupMap = loadGroups(List.of(tutor));
         Map<Long, List<TutorWechatAccount>> accountMap = Map.of(
                 tutor.getId(), accountRepository.findByTutorIdAndStatus(tutor.getId(), 1));
-        return toVO(tutor, userMap, groupMap, accountMap);
+        Set<Long> hostedAccountIds = hostingAssignmentService.findActiveHostedAccountIds();
+        return toVO(tutor, userMap, groupMap, accountMap, hostedAccountIds);
     }
 
     private Map<Long, SysUser> loadUsers(List<Tutor> tutors) {
@@ -72,13 +77,13 @@ public class TutorService {
     }
 
     private TutorVO toVO(Tutor tutor, Map<Long, SysUser> userMap, Map<Long, TeachingGroup> groupMap,
-                         Map<Long, List<TutorWechatAccount>> accountMap) {
+                         Map<Long, List<TutorWechatAccount>> accountMap, Set<Long> hostedAccountIds) {
         SysUser user = userMap.get(tutor.getUserId());
         TeachingGroup group = groupMap.get(tutor.getTeachingGroupId());
         List<TutorWechatAccount> accounts = accountMap.getOrDefault(tutor.getId(), List.of());
         List<TutorAccountVO> accountVOs = accounts.stream()
                 .map(a -> new TutorAccountVO(a.getId(), a.getAccountName(), a.getSubject(), a.getGrade(),
-                        a.getStudentCount(), a.getStatus()))
+                        a.getStudentCount(), a.getStatus(), hostedAccountIds.contains(a.getId())))
                 .toList();
         return new TutorVO(
                 tutor.getId(),
