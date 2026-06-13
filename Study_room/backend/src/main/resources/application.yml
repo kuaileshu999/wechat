@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: study-room-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/study_room?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: Xh9999
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+  sql:
+    init:
+      mode: never
+
+jwt:
+  secret: StudyRoomManagementSystemSecretKey2024MustBeLongEnoughForHS256
+  expiration: 86400000
+
+app:
+  login:
+    max-fail-count: 10
