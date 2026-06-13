@@ -4,14 +4,20 @@ set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$ROOT/deploy/.env"
 
+# shellcheck disable=SC1091
+source "$ROOT/deploy/common.sh"
+
 if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   source "$ENV_FILE"
 fi
 
+setup_java_home
+require_maven
+
 export DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD CORS_ORIGINS
 
-echo "==> 打包后端 (profile=prod) ..."
+echo "==> 打包后端 (JAVA_HOME=$JAVA_HOME) ..."
 cd "$ROOT/server"
 mvn -q package -DskipTests
 

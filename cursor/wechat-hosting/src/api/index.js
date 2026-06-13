@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const http = axios.create({
-  baseURL: '/api',
+  baseURL: '/wechat/api',
   timeout: 60000,
 })
 
@@ -32,8 +32,22 @@ export const authApi = {
   login: (data) => http.post('/auth/login', data),
 }
 
+export function serializeParams(params) {
+  const search = new URLSearchParams()
+  Object.entries(params || {}).forEach(([key, val]) => {
+    if (val === undefined || val === null || val === '') return
+    if (Array.isArray(val)) {
+      val.forEach((item) => search.append(key, item))
+    } else {
+      search.append(key, val)
+    }
+  })
+  return search.toString()
+}
+
 export const teachingGroupApi = {
   list: () => http.get('/teaching-groups'),
+  tree: () => http.get('/teaching-groups/tree'),
 }
 
 export const tutorApi = {
@@ -48,6 +62,11 @@ export const takeoverManagerApi = {
 export const hostingConfigApi = {
   list: () => http.get('/hosting-configs'),
   detail: (id) => http.get(`/hosting-configs/${id}`),
+  preview: (params) =>
+    http.get('/hosting-configs/preview', {
+      params,
+      paramsSerializer: { serialize: serializeParams },
+    }),
   create: (data) => http.post('/hosting-configs', data),
   activate: (id, operatorId) => http.post(`/hosting-configs/${id}/activate`, { operatorId }),
   end: (id, operatorId) => http.post(`/hosting-configs/${id}/end`, { operatorId }),

@@ -16,12 +16,18 @@ DB_NAME="${DB_NAME:-wechat}"
 DB_USER="${DB_USER:-root}"
 DB_PASSWORD="${DB_PASSWORD:-123456}"
 
-MIGRATE_FILE="$ROOT/server/sql/migrate_account_allocation.sql"
-if [[ ! -f "$MIGRATE_FILE" ]]; then
-  echo "找不到 $MIGRATE_FILE"
-  exit 1
-fi
+MIGRATE_FILES=(
+  "$ROOT/server/sql/migrate_account_allocation.sql"
+  "$ROOT/server/sql/migrate_hosting_filter.sql"
+  "$ROOT/server/sql/migrate_org_tree.sql"
+)
 
-echo "==> 执行数据库迁移 ${DB_NAME} ..."
-mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "$MIGRATE_FILE"
+for MIGRATE_FILE in "${MIGRATE_FILES[@]}"; do
+  if [[ ! -f "$MIGRATE_FILE" ]]; then
+    echo "找不到 $MIGRATE_FILE"
+    exit 1
+  fi
+  echo "==> 执行 $(basename "$MIGRATE_FILE") ..."
+  mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "$MIGRATE_FILE"
+done
 echo "✓ 数据库迁移完成"

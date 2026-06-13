@@ -4,74 +4,118 @@
       <div class="header-left">
         <el-button link @click="goBack">← 返回</el-button>
         <div>
-          <h3>新建接管配置</h3>
-          <p>批量选择辅导老师及企微账号，统一配置接管者</p>
+          <h3>新建分配</h3>
+          <p>按教研组、辅导老师、学生阶段配置筛选规则，匹配账号将纳入托管</p>
         </div>
       </div>
       <div class="header-actions">
         <el-button @click="goBack">取消</el-button>
-        <el-button
-          v-if="currentStep < 2"
-          type="primary"
-          :disabled="!canNext"
-          @click="currentStep++"
-        >
+        <el-button v-if="currentStep < 2" type="primary" :disabled="!canNext" @click="currentStep++">
           下一步
         </el-button>
-        <el-button
-          v-else
-          type="primary"
-          :loading="saving"
-          :disabled="!canSubmit"
-          @click="handleSubmit"
-        >
-          确认创建（{{ selectedAccountIds.length }} 个账号）
+        <el-button v-else type="primary" :loading="saving" :disabled="!canSubmit" @click="handleSubmit">
+          确认创建（{{ preview.availableCount }} 个可托管账号）
         </el-button>
       </div>
     </div>
 
     <el-steps :active="currentStep" align-center class="steps-bar">
-      <el-step title="选择辅导老师及账号" />
+      <el-step title="配置筛选条件" />
       <el-step title="选择接管者与生效时间" />
       <el-step title="确认并生效" />
     </el-steps>
 
     <div v-show="currentStep === 0" class="step-panel page-card">
-      <div class="step-toolbar">
-        <el-input v-model="searchName" placeholder="搜索辅导老师姓名" clearable style="width: 220px" />
-        <el-select v-model="filterGroupId" placeholder="全部教研组" clearable style="width: 180px">
-          <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
-        </el-select>
-        <span class="selected-summary">已选 {{ selectedTutorCount }} 位老师，共 {{ selectedAccountIds.length }} 个账号</span>
+      <div class="filter-section">
+        <h4>按组织选择</h4>
+        <p class="section-tip">从组织架构中勾选多个组；数据来自数据库，选中上级将包含其下全部辅导老师</p>
+        <OrgCascadePicker v-model="selectedOrgIds" :tree="orgTree" />
       </div>
 
-      <div class="tutor-grid">
-        <div v-for="tutor in filteredTutors" :key="tutor.id" class="tutor-card">
-          <div class="tutor-card-head">
-            <el-checkbox
-              :model-value="isTutorFullySelected(tutor)"
-              :indeterminate="isTutorPartialSelected(tutor)"
-              @change="(val) => toggleTutor(tutor, val)"
-            >
-              <span class="tutor-name">{{ tutor.name }}</span>
-              <span class="tutor-group">{{ tutor.teachingGroupName }}</span>
-            </el-checkbox>
-          </div>
-          <div class="account-list">
-            <label v-for="acc in tutor.accounts" :key="acc.id" class="account-item">
-              <el-checkbox
-                :model-value="selectedAccountIds.includes(acc.id)"
-                :disabled="acc.hosted"
-                @change="(val) => toggleAccount(acc.id, val)"
-              />
-              <span class="acc-name">{{ acc.accountName }}</span>
-              <span class="acc-meta">{{ acc.subject }} · {{ acc.grade }} · {{ acc.studentCount }} 学生</span>
-              <el-tag v-if="acc.hosted" size="small" type="warning">已托管</el-tag>
-            </label>
-          </div>
+      <div class="filter-section">
+        <h4>单独指定辅导老师</h4>
+        <p class="section-tip">可搜索并添加任意辅导老师，无需属于上方已选教研组</p>
+        <el-select
+          v-model="pickerTutorId"
+          filterable
+          clearable
+          placeholder="搜索辅导老师姓名"
+          style="width: 320px"
+          @change="addTutorByPicker"
+        >
+          <el-option
+            v-for="t in tutorSearchOptions"
+            :key="t.id"
+            :label="`${t.name}（${t.teachingGroupName}）`"
+            :value="t.id"
+            :disabled="selectedTutorIds.includes(t.id)"
+          />
+        </el-select>
+        <div v-if="selectedTutorTags.length" class="tag-row">
+          <el-tag
+            v-for="item in selectedTutorTags"
+            :key="item.id"
+            closable
+            @close="removeTutor(item.id)"
+          >
+            {{ item.name }} · {{ item.teachingGroupName }}
+          </el-tag>
         </div>
       </div>
-      <el-empty v-if="!filteredTutors.length" description="暂无辅导老师" />
+
+      <div class="filter-section">
+        <h4>账号阶段筛选</h4>
+        <p class="section-tip">按学生所处阶段筛选企微账号；不选则包含全部阶段</p>
+        <el-checkbox-group v-model="selectedStages">
+          <el-checkbox :value="1" border>转化期</el-checkbox>
+          <el-checkbox :value="2" border>承接期</el-checkbox>
+        </el-checkbox-group>
+      </div>
+
+      <div class="filter-section">
+        <h4>自动纳入</h4>
+        <el-switch v-model="autoAssign" active-text="后续新增且匹配的账号自动纳入托管" />
+      </div>
+
+      <div v-loading="previewLoading" class="preview-panel">
+        <div class="preview-stats">
+          <div class="preview-stat">
+            <span class="num">{{ preview.tutorCount }}</span>
+            <span class="label">涉及辅导老师</span>
+          </div>
+          <div class="preview-stat">
+            <span class="num">{{ preview.accountCount }}</span>
+            <span class="label">匹配账号</span>
+          </div>
+          <div class="preview-stat ok">
+            <span class="num">{{ preview.availableCount }}</span>
+            <span class="label">可托管</span>
+          </div>
+          <div class="preview-stat warn">
+            <span class="num">{{ preview.skippedHostedCount }}</span>
+            <span class="label">已被托管（跳过）</span>
+          </div>
+        </div>
+        <el-table v-if="preview.sampleAccounts?.length" :data="preview.sampleAccounts" border size="small" max-height="280">
+          <el-table-column label="辅导老师" prop="tutorName" min-width="100" />
+          <el-table-column label="教研组" prop="teachingGroupName" min-width="100" />
+          <el-table-column label="企微账号" prop="accountName" min-width="140" />
+          <el-table-column label="阶段" min-width="120">
+            <template #default="{ row }">
+              <el-tag v-for="s in row.stageLabels" :key="s" size="small" style="margin-right: 4px">{{ s }}</el-tag>
+              <span v-if="!row.stageLabels?.length">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag v-if="row.hosted" type="warning" size="small">已托管</el-tag>
+              <el-tag v-else type="success" size="small">可托管</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-else-if="hasFilter" description="当前筛选条件下无匹配账号" />
+        <el-empty v-else description="请至少选择一个教研组或辅导老师" />
+      </div>
     </div>
 
     <div v-show="currentStep === 1" class="step-panel page-card">
@@ -101,7 +145,7 @@
             value-format="YYYY-MM-DDTHH:mm:ss"
           />
         </el-form-item>
-        <el-form-item label="接管说明">
+        <el-form-item label="说明">
           <el-input v-model="description" type="textarea" :rows="4" placeholder="请输入接管说明（可选）" />
         </el-form-item>
       </el-form>
@@ -109,20 +153,27 @@
         type="info"
         :closable="false"
         show-icon
-        title="批量接管提示：所选账号将统一由一位接管者处理消息；已被他人托管的账号将自动跳过。"
+        title="同一企微账号同时只能被一位接管者托管；已被他人托管的账号将自动跳过。"
       />
     </div>
 
     <div v-show="currentStep === 2" class="step-panel page-card">
-      <div class="confirm-block">
-        <h4>已选账号（{{ selectedAccountIds.length }}）</h4>
-        <div class="confirm-tags">
-          <el-tag v-for="item in selectedAccountSummary" :key="item.id" class="confirm-tag">
-            {{ item.tutorName }} · {{ item.accountName }}
-          </el-tag>
-        </div>
-      </div>
       <el-descriptions :column="1" border>
+        <el-descriptions-item label="已选组织">
+          {{ selectedOrgLabels.join('；') || '无' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="指定辅导老师">
+          {{ selectedTutorTags.map((t) => t.name).join('、') || '无' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="阶段筛选">
+          {{ stageSummary }}
+        </el-descriptions-item>
+        <el-descriptions-item label="自动纳入">
+          {{ autoAssign ? '是' : '否' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="可托管账号">
+          {{ preview.availableCount }} 个（共匹配 {{ preview.accountCount }} 个）
+        </el-descriptions-item>
         <el-descriptions-item label="接管者">
           {{ selectedManagerName || '-' }}
         </el-descriptions-item>
@@ -132,7 +183,7 @@
         <el-descriptions-item v-if="effectiveType === 2" label="生效时间">
           {{ scheduledStartAt || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="接管说明">
+        <el-descriptions-item label="说明">
           {{ description || '无' }}
         </el-descriptions-item>
       </el-descriptions>
@@ -141,55 +192,71 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { hostingConfigApi, takeoverManagerApi, teachingGroupApi, tutorApi } from '../api'
 import { getUser } from '../utils/auth'
+import OrgCascadePicker from '../components/OrgCascadePicker.vue'
 
 const router = useRouter()
 const currentStep = ref(0)
 const saving = ref(false)
+const previewLoading = ref(false)
 const tutors = ref([])
 const managers = ref([])
-const groups = ref([])
-const searchName = ref('')
-const filterGroupId = ref(null)
-const selectedAccountIds = ref([])
+const orgTree = ref([])
+const selectedOrgIds = ref([])
+const selectedTutorIds = ref([])
+const selectedStages = ref([])
+const autoAssign = ref(true)
+const pickerTutorId = ref(null)
 const takeoverManagerId = ref(null)
 const effectiveType = ref(1)
 const scheduledStartAt = ref(null)
 const description = ref('')
-
-const filteredTutors = computed(() => {
-  return tutors.value.filter((t) => {
-    if (filterGroupId.value && t.teachingGroupId !== filterGroupId.value) return false
-    if (searchName.value && !t.name.includes(searchName.value.trim())) return false
-    return true
-  })
+const preview = ref({
+  tutorCount: 0,
+  accountCount: 0,
+  availableCount: 0,
+  skippedHostedCount: 0,
+  sampleAccounts: [],
 })
 
-const selectedTutorCount = computed(() => {
-  const tutorIds = new Set()
-  tutors.value.forEach((tutor) => {
-    const selectable = (tutor.accounts || []).filter((a) => !a.hosted).map((a) => a.id)
-    if (selectable.some((id) => selectedAccountIds.value.includes(id))) {
-      tutorIds.add(tutor.id)
-    }
-  })
-  return tutorIds.size
-})
+const hasFilter = computed(() => selectedOrgIds.value.length > 0 || selectedTutorIds.value.length > 0)
 
-const selectedAccountSummary = computed(() => {
-  const result = []
-  tutors.value.forEach((tutor) => {
-    ;(tutor.accounts || []).forEach((acc) => {
-      if (selectedAccountIds.value.includes(acc.id)) {
-        result.push({ id: acc.id, tutorName: tutor.name, accountName: acc.accountName })
-      }
+const tutorSearchOptions = computed(() => tutors.value)
+
+const selectedOrgLabels = computed(() => {
+  const nodeMap = new Map()
+  const walk = (nodes, ancestors = []) => {
+    ;(nodes || []).forEach((node) => {
+      nodeMap.set(node.id, { name: node.name, ancestors })
+      if (node.children?.length) walk(node.children, [...ancestors, node.id])
     })
-  })
-  return result
+  }
+  walk(orgTree.value)
+  return selectedOrgIds.value
+    .map((id) => {
+      const node = nodeMap.get(Number(id))
+      if (!node) return null
+      const path = [...node.ancestors.map((aid) => nodeMap.get(aid)?.name).filter(Boolean), node.name]
+      return path.join(' / ')
+    })
+    .filter(Boolean)
+})
+
+const selectedTutorTags = computed(() =>
+  selectedTutorIds.value
+    .map((id) => tutors.value.find((t) => t.id === id))
+    .filter(Boolean)
+    .map((t) => ({ id: t.id, name: t.name, teachingGroupName: t.teachingGroupName }))
+)
+
+const stageSummary = computed(() => {
+  if (!selectedStages.value.length) return '全部阶段'
+  const map = { 1: '转化期', 2: '承接期' }
+  return selectedStages.value.map((s) => map[s]).join('、')
 })
 
 const selectedManagerName = computed(() => {
@@ -198,7 +265,7 @@ const selectedManagerName = computed(() => {
 })
 
 const canNext = computed(() => {
-  if (currentStep.value === 0) return selectedAccountIds.value.length > 0
+  if (currentStep.value === 0) return hasFilter.value && preview.value.availableCount > 0
   if (currentStep.value === 1) {
     if (!takeoverManagerId.value) return false
     if (effectiveType.value === 2 && !scheduledStartAt.value) return false
@@ -207,40 +274,49 @@ const canNext = computed(() => {
   return true
 })
 
-const canSubmit = computed(() => selectedAccountIds.value.length > 0 && takeoverManagerId.value)
+const canSubmit = computed(() => hasFilter.value && preview.value.availableCount > 0 && takeoverManagerId.value)
 
-function selectableAccountIds(tutor) {
-  return (tutor.accounts || []).filter((a) => !a.hosted).map((a) => a.id)
-}
+let previewTimer = null
 
-function isTutorFullySelected(tutor) {
-  const ids = selectableAccountIds(tutor)
-  return ids.length > 0 && ids.every((id) => selectedAccountIds.value.includes(id))
-}
-
-function isTutorPartialSelected(tutor) {
-  const ids = selectableAccountIds(tutor)
-  const selected = ids.filter((id) => selectedAccountIds.value.includes(id))
-  return selected.length > 0 && selected.length < ids.length
-}
-
-function toggleTutor(tutor, checked) {
-  const ids = selectableAccountIds(tutor)
-  if (checked) {
-    selectedAccountIds.value = [...new Set([...selectedAccountIds.value, ...ids])]
-  } else {
-    selectedAccountIds.value = selectedAccountIds.value.filter((id) => !ids.includes(id))
+function buildFilterPayload() {
+  return {
+    filterGroupIds: selectedOrgIds.value,
+    filterTutorIds: selectedTutorIds.value,
+    filterStages: selectedStages.value.length ? selectedStages.value : undefined,
   }
 }
 
-function toggleAccount(accountId, checked) {
-  if (checked) {
-    if (!selectedAccountIds.value.includes(accountId)) {
-      selectedAccountIds.value = [...selectedAccountIds.value, accountId]
-    }
-  } else {
-    selectedAccountIds.value = selectedAccountIds.value.filter((id) => id !== accountId)
+async function loadPreview() {
+  if (!hasFilter.value) {
+    preview.value = { tutorCount: 0, accountCount: 0, availableCount: 0, skippedHostedCount: 0, sampleAccounts: [] }
+    return
   }
+  previewLoading.value = true
+  try {
+    preview.value = await hostingConfigApi.preview(buildFilterPayload())
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+function schedulePreview() {
+  clearTimeout(previewTimer)
+  previewTimer = setTimeout(loadPreview, 300)
+}
+
+watch([selectedOrgIds, selectedTutorIds, selectedStages], schedulePreview, { deep: true })
+
+function addTutorByPicker(id) {
+  if (id && !selectedTutorIds.value.includes(id)) {
+    selectedTutorIds.value = [...selectedTutorIds.value, id]
+  }
+  pickerTutorId.value = null
+}
+
+function removeTutor(id) {
+  selectedTutorIds.value = selectedTutorIds.value.filter((item) => item !== id)
 }
 
 function goBack() {
@@ -256,7 +332,8 @@ async function handleSubmit() {
       scheduledStartAt: effectiveType.value === 2 ? scheduledStartAt.value : null,
       description: description.value || undefined,
       createdBy: getUser().userId,
-      accountIds: selectedAccountIds.value,
+      autoAssign: autoAssign.value,
+      ...buildFilterPayload(),
     })
     ElMessage.success('创建成功')
     router.push('/hosting-config')
@@ -268,12 +345,12 @@ async function handleSubmit() {
 }
 
 onMounted(async () => {
-  const [groupList, tutorList, managerList] = await Promise.all([
-    teachingGroupApi.list(),
+  const [tree, tutorList, managerList] = await Promise.all([
+    teachingGroupApi.tree(),
     tutorApi.list(),
     takeoverManagerApi.list(),
   ])
-  groups.value = groupList
+  orgTree.value = tree
   tutors.value = tutorList
   managers.value = managerList
 })
@@ -327,90 +404,75 @@ onMounted(async () => {
   overflow: auto;
 }
 
-.step-toolbar {
+.filter-section {
+  margin-bottom: 24px;
+}
+
+.filter-section h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.section-tip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.group-grid {
+  display: none;
+}
+
+.tag-row {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.preview-panel {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.preview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 16px;
-  flex-wrap: wrap;
 }
 
-.selected-summary {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--primary);
-  font-weight: 500;
-}
-
-.tutor-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
-
-.tutor-card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.tutor-card-head {
-  padding: 12px 16px;
+.preview-stat {
   background: #fafafa;
-  border-bottom: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: center;
 }
 
-.tutor-name {
-  font-weight: 600;
-  margin-right: 8px;
+.preview-stat .num {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
 }
 
-.tutor-group {
+.preview-stat.ok .num {
+  color: #16a34a;
+}
+
+.preview-stat.warn .num {
+  color: #d97706;
+}
+
+.preview-stat .label {
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-.account-list {
-  padding: 8px 0;
-}
-
-.account-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-}
-
-.acc-name {
-  font-size: 14px;
-}
-
-.acc-meta {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-left: auto;
 }
 
 .config-form {
   max-width: 560px;
   margin-bottom: 16px;
-}
-
-.confirm-block {
-  margin-bottom: 16px;
-}
-
-.confirm-block h4 {
-  margin-bottom: 12px;
-}
-
-.confirm-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.confirm-tag {
-  margin: 0;
 }
 </style>

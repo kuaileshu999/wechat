@@ -74,10 +74,17 @@ bash deploy/server-deploy.sh
 
 ### 8. 宝塔配置网站（必须手动）
 
-1. **网站** → **添加站点**
-   - 域名：`120.26.194.111`
-   - 根目录：`/root/wechat/cursor/wechat-hosting/dist`
-   - PHP：纯静态
+同一 IP 部署两个项目：
+
+| 项目 | 访问地址 | 后端端口 | 前端目录 |
+|------|----------|----------|----------|
+| **自习室** | http://120.26.194.111/ | 8080 | `/root/wechat/Study_room/frontend/dist` |
+| **消息托管** | http://120.26.194.111/wechat/ | 8090 | `/root/wechat/cursor/wechat-hosting/dist` |
+
+1. **网站** → 站点设置 → **网站目录** 改为：
+   ```
+   /root/wechat/Study_room/frontend/dist
+   ```
 
 2. **网站** → **设置** → **配置文件**
 
@@ -85,18 +92,34 @@ bash deploy/server-deploy.sh
 
 3. 保存并重载 Nginx。
 
-### 9. 阿里云安全组
+### 9. 部署自习室
+
+```bash
+cd /root/wechat
+cp Study_room/deploy/.env.example Study_room/deploy/.env
+vi Study_room/deploy/.env   # 填写 DB_PASSWORD
+chmod +x Study_room/deploy/*.sh deploy/*.sh
+bash Study_room/deploy/server-deploy.sh
+```
+
+### 10. 部署消息托管（改用 8090 端口）
+
+```bash
+cd /root/wechat
+vi deploy/.env   # 确认 SERVER_PORT=8090
+bash deploy/server-deploy.sh
+```
+
+### 11. 阿里云安全组
 
 ECS → 安全组 → 入方向放行 **80** 端口。
 
-### 10. 访问
+### 12. 访问
 
-浏览器打开：**http://120.26.194.111**
-
-| 用户名 | 密码 |
-|--------|------|
-| liting | 123456 |
-| admin  | 123456 |
+| 系统 | 地址 | 账号 |
+|------|------|------|
+| 自习室 | http://120.26.194.111/ | admin / Admin@123 |
+| 消息托管 | http://120.26.194.111/wechat/ | liting / 123456 |
 
 ---
 
@@ -105,30 +128,34 @@ ECS → 安全组 → 入方向放行 **80** 端口。
 ```bash
 cd /root/wechat
 git pull origin main
+
+# 自习室
+bash Study_room/deploy/server-deploy.sh
+
+# 消息托管
 bash deploy/server-deploy.sh
 ```
 
-宝塔网站根目录无需改动。
+详细说明见：**Study_room/deploy/README.md**
 
 ---
 
 ## 三、常用命令
 
 ```bash
-# 仅初始化数据库
-bash deploy/init-db.sh
-
-# 仅构建前端
+# 消息托管 - 仅构建前端
 bash deploy/build-frontend.sh
 
-# 仅打包后端
+# 消息托管 - 仅打包后端
 bash deploy/build-backend.sh
 
-# 重启后端
+# 消息托管 - 重启后端
 bash deploy/restart-backend.sh
-
-# 查看后端日志
 tail -f deploy/app.log
+
+# 自习室 - 一键部署
+bash Study_room/deploy/server-deploy.sh
+tail -f Study_room/deploy/app.log
 ```
 
 ---
@@ -150,20 +177,23 @@ tail -f deploy/app.log
 
 | 现象 | 处理 |
 |------|------|
-| 「没有找到站点」 | 检查网站根目录是否指向 `cursor/wechat-hosting/dist` |
-| 页面能开，登录失败 | 检查 Nginx `/api/` 反向代理；`curl 127.0.0.1:8080/api/teaching-groups` |
-| 跨域错误 | 确认 `deploy/.env` 中 `CORS_ORIGINS` 含 `http://120.26.194.111`，重启后端 |
-| 后端启动失败 | `tail -f deploy/app.log`，检查 MySQL 账号密码 |
-| `.env: -Xmx512m: command not found` | `JAVA_OPTS` 须加引号：`JAVA_OPTS="-Xms256m -Xmx512m"` |
+| 打开 IP 显示错误项目 | 网站根目录应为 `Study_room/frontend/dist`；合并 `baota-nginx.conf` |
+| 自习室登录失败 | `curl 127.0.0.1:8080/api/auth/login`；查看 `Study_room/deploy/app.log` |
+| 消息托管页面 404 | 访问 `/wechat/`；重新执行 `bash deploy/server-deploy.sh` |
+| 消息托管 API 失败 | `curl 127.0.0.1:8090/api/teaching-groups`；确认 `SERVER_PORT=8090` |
+| 跨域错误 | `CORS_ORIGINS=http://120.26.194.111`，重启消息托管后端 |
+| `JAVA_HOME environment variable is not defined` | 安装 JDK 17，或设置 `JAVA_HOME=/usr/lib/jvm/java-17-openjdk` |
+| `.env: -Xmx512m: command not found` | `JAVA_OPTS="-Xms256m -Xmx512m"`（须加引号） |
+
+完整排查见 **Study_room/deploy/README.md**
 
 ---
 
-## 六、使用宝塔 Java 项目管理器（可选）
+## 使用宝塔 Java 项目管理器（可选）
 
-若不想用 `restart-backend.sh`，可在宝塔 **Java 项目管理器** 中：
+| 项目 | jar 路径 | 端口 |
+|------|----------|------|
+| 自习室 | `/root/wechat/Study_room/backend/target/study-room-backend-1.0.0.jar` | 8080 |
+| 消息托管 | `/root/wechat/server/target/message-hosting-1.0.0.jar` | 8090 |
 
-- jar 路径：`/root/wechat/server/target/message-hosting-1.0.0.jar`
-- 端口：`8080`
-- 启动参数：`-Dspring.profiles.active=prod`
-
-环境变量在 Java 项目管理器中配置 `DB_PASSWORD`、`CORS_ORIGINS` 等，与 `deploy/.env` 保持一致。
+消息托管启动参数：`-Dspring.profiles.active=prod`

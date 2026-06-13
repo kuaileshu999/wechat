@@ -1,0 +1,16 @@
+[Unit]
+Description=WeChat Message Hosting Backend
+After=network.target mysqld.service mysql.service mariadb.service
+Wants=mysqld.service mysql.service mariadb.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/wechat
+ExecStart=/root/wechat/deploy/start-backend-foreground.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/root/wechat/deploy/app.log
+StandardError=append:/root/wechat/deploy/app.log
+
+[Install]
+WantedBy=multi-user.target

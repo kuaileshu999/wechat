@@ -1,12 +1,12 @@
 #!/bin/bash
-# 重启 Spring Boot（不依赖宝塔 Java 项目管理器时使用）
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$ROOT/.." && pwd)"
 ENV_FILE="$ROOT/deploy/.env"
 
 # shellcheck disable=SC1091
-source "$ROOT/deploy/common.sh"
+source "$REPO_ROOT/deploy/common.sh"
 
 if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
@@ -15,16 +15,14 @@ fi
 
 setup_java_home
 
-export DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD CORS_ORIGINS
-
 SERVER_PORT="${SERVER_PORT:-8080}"
 JAVA_OPTS="${JAVA_OPTS:--Xms256m -Xmx512m}"
 LOG_FILE="$ROOT/deploy/app.log"
 PID_FILE="$ROOT/deploy/app.pid"
 
-JAR=$(ls -1 "$ROOT/server/target/message-hosting-"*.jar 2>/dev/null | head -1)
-if [[ -z "$JAR" ]]; then
-  echo "未找到 jar，请先执行: bash deploy/build-backend.sh"
+JAR="$ROOT/backend/target/study-room-backend-1.0.0.jar"
+if [[ ! -f "$JAR" ]]; then
+  echo "未找到 jar，请先执行: bash Study_room/deploy/build-backend.sh"
   exit 1
 fi
 
@@ -37,18 +35,15 @@ if [[ -f "$PID_FILE" ]]; then
   fi
 fi
 
-echo "==> 启动后端 ..."
-nohup java $JAVA_OPTS \
-  -Dspring.profiles.active=prod \
-  -jar "$JAR" \
-  --server.port="$SERVER_PORT" \
-  > "$LOG_FILE" 2>&1 &
-
+echo "==> 启动自习室后端 ..."
+nohup java $JAVA_OPTS -jar "$JAR" --server.port="$SERVER_PORT" > "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
-sleep 15
+sleep 12
 
-if curl -sf "http://127.0.0.1:${SERVER_PORT}/api/teaching-groups" >/dev/null; then
-  echo "✓ 后端已启动，端口 $SERVER_PORT"
+if curl -sf "http://127.0.0.1:${SERVER_PORT}/api/auth/login" \
+  -X POST -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"Admin@123"}' >/dev/null; then
+  echo "✓ 自习室后端已启动，端口 $SERVER_PORT"
   echo "  日志: $LOG_FILE"
 else
   echo "启动可能失败，请查看日志: tail -f $LOG_FILE"
