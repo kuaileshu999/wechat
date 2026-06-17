@@ -125,13 +125,10 @@
         </el-form-item>
         <el-form-item label="学员">
           <el-select v-model="form.studentId" filterable remote clearable :remote-method="searchStudents"
-                     placeholder="搜索学员姓名或手机号" style="width: 100%">
+                     placeholder="搜索有未消课金额的学员" style="width: 100%" :disabled="!form.campusId">
             <el-option v-for="s in students" :key="s.id"
                        :label="`${s.name} (${s.phone})`" :value="s.id" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="标题">
-          <el-input v-model="form.title" placeholder="如：数学提高班" />
         </el-form-item>
         <el-form-item label="开始时间" required>
           <ScheduleDateTimePicker v-model="form.startTime" />
@@ -178,12 +175,7 @@
         </el-table-column>
         <el-table-column label="学员" width="150">
           <template #default="{ row }">
-            <el-input v-model="row.studentKeyword" size="small" placeholder="姓名或手机号" />
-          </template>
-        </el-table-column>
-        <el-table-column label="标题" width="120">
-          <template #default="{ row }">
-            <el-input v-model="row.title" size="small" />
+            <el-input v-model="row.studentKeyword" size="small" placeholder="有未消课金额" />
           </template>
         </el-table-column>
         <el-table-column label="开始时间" width="240">
@@ -223,8 +215,8 @@
         </el-form-item>
         <el-form-item label="Excel文件">
           <input type="file" accept=".xlsx,.xls" @change="onImportFileChange" />
-          <p class="tip">第一列：授课老师，第二列：课程类型，第三列：学员，第四列：标题，第五列：开始时间，第六列：结束时间，第七列：备注</p>
-          <p class="tip">时间须为5分钟的整数倍；课程类型填已在「课程类型管理」中创建且启用的名称；学员可填姓名或11位手机号</p>
+          <p class="tip">第一列：授课老师，第二列：课程类型，第三列：学员，第四列：开始时间，第五列：结束时间，第六列：备注</p>
+          <p class="tip">时间须为5分钟的整数倍；课程类型填已在「课程类型管理」中创建且启用的名称；学员需有订单且存在未消课金额</p>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -270,7 +262,7 @@ const selectedIds = ref([])
 const filters = reactive({ campusId: null, teacherId: null, courseTypeId: null, status: null })
 const form = reactive({
   campusId: null, teacherId: null, courseTypeId: null, studentId: null,
-  title: '', startTime: '', endTime: '', classroom: '', remark: ''
+  startTime: '', endTime: '', classroom: '', remark: ''
 })
 const batchForm = reactive({
   campusId: null,
@@ -341,8 +333,13 @@ async function loadCampusTeachers(campusId) {
 }
 
 async function searchStudents(keyword) {
-  if (!keyword) return
-  students.value = await request.get('/students/search', { params: { keyword } })
+  if (!keyword || !form.campusId) {
+    students.value = []
+    return
+  }
+  students.value = await request.get('/students/search-for-schedule', {
+    params: { keyword, campusId: form.campusId }
+  })
 }
 
 function onCampusChange(campusId) {
@@ -387,7 +384,6 @@ function createEmptyBatchRow() {
     teacherId: null,
     courseTypeId: batchCourseTypes.value[0]?.id || null,
     studentKeyword: '',
-    title: '',
     startTime: roundToFiveMinutes(now),
     endTime: roundToFiveMinutes(now.add(1, 'hour')),
     classroom: '',
@@ -427,15 +423,16 @@ async function resolveStudentId(campusId, keyword) {
   if (!keyword?.trim()) {
     return null
   }
-  const list = await request.get('/students/search', { params: { keyword: keyword.trim() } })
-  const matched = list.filter(s => s.campusId === campusId)
-  if (matched.length === 0) {
-    throw new Error(`未找到学员: ${keyword}`)
+  const list = await request.get('/students/search-for-schedule', {
+    params: { keyword: keyword.trim(), campusId }
+  })
+  if (list.length === 0) {
+    throw new Error(`未找到符合条件的学员: ${keyword}`)
   }
-  if (matched.length > 1) {
+  if (list.length > 1) {
     throw new Error(`学员不唯一: ${keyword}`)
   }
-  return matched[0].id
+  return list[0].id
 }
 
 async function submitBatch() {
@@ -468,7 +465,6 @@ async function submitBatch() {
         teacherId: row.teacherId,
         courseTypeId: row.courseTypeId,
         studentId,
-        title: row.title || null,
         startTime: row.startTime,
         endTime: row.endTime,
         classroom: row.classroom || null,
@@ -514,7 +510,6 @@ function openDialog(row) {
       teacherId: row.teacherId,
       courseTypeId: row.courseTypeId,
       studentId: row.studentId,
-      title: row.title || '',
       startTime: row.startTime ? dayjs(row.startTime).format('YYYY-MM-DD HH:mm') : '',
       endTime: row.endTime ? dayjs(row.endTime).format('YYYY-MM-DD HH:mm') : '',
       classroom: row.classroom || '',
@@ -533,7 +528,6 @@ function openDialog(row) {
       teacherId: null,
       courseTypeId: null,
       studentId: null,
-      title: '',
       startTime: roundToFiveMinutes(now),
       endTime: roundToFiveMinutes(now.add(1, 'hour')),
       classroom: '',
@@ -553,7 +547,7 @@ async function submit() {
       !validateScheduleTime(form.endTime, '结束时间')) {
     return
   }
-  const payload = { ...form, studentId: form.studentId || null }
+  const payload = { ...form, studentId: form.studentId || null, title: null }
   if (editingId.value) {
     await request.put(`/schedules/${editingId.value}`, payload)
   } else {

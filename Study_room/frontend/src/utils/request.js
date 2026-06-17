@@ -26,12 +26,15 @@ request.interceptors.response.use(
     return res.data
   },
   error => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    if (status === 401 || status === 403) {
       const userStore = useUserStore()
       userStore.logout()
       router.push('/login')
+      ElMessage.error(status === 403 ? '登录已失效，请重新登录' : (error.response?.data?.message || '请重新登录'))
+    } else {
+      ElMessage.error(error.response?.data?.message || error.message || '网络错误')
     }
-    ElMessage.error(error.response?.data?.message || error.message || '网络错误')
     return Promise.reject(error)
   }
 )

@@ -3,6 +3,7 @@ package com.studyroom.service;
 import com.studyroom.common.BusinessException;
 import com.studyroom.common.CampusScope;
 import com.studyroom.common.PageResult;
+import com.studyroom.dto.StudentCreateRequest;
 import com.studyroom.dto.StudentUpdateRequest;
 import com.studyroom.entity.Student;
 import com.studyroom.repository.StudentRepository;
@@ -41,22 +42,41 @@ public class StudentService {
         return new PageResult<>(result.getContent(), result.getTotalElements(), page, size);
     }
 
-    public List<Student> search(String keyword) {
+    public List<Student> search(String keyword, Long campusId) {
         List<Long> campusIds = CampusScope.currentCampusIds();
         if (keyword == null || keyword.isBlank()) {
             return List.of();
         }
-        return studentRepository.searchByKeyword(campusIds, keyword);
+        if (campusId != null) {
+            campusService.ensureCampusEnabled(campusId);
+            return studentRepository.searchByCampusAndKeyword(campusIds, campusId, keyword.trim());
+        }
+        return studentRepository.searchByKeyword(campusIds, keyword.trim());
+    }
+
+    public List<Student> searchForSchedule(String keyword, Long campusId) {
+        if (campusId == null) {
+            throw new BusinessException("请选择校区");
+        }
+        campusService.ensureCampusEnabled(campusId);
+        List<Long> campusIds = CampusScope.currentCampusIds();
+        if (keyword == null || keyword.isBlank()) {
+            return List.of();
+        }
+        return studentRepository.searchScheduleEligible(campusIds, campusId, keyword.trim());
     }
 
     @Transactional
-    public Student create(Student student) {
-        validateName(student.getName());
-        String phone = normalizePhone(student.getPhone());
+    public Student create(StudentCreateRequest request) {
+        validateName(request.getName());
+        String phone = normalizePhone(request.getPhone());
         ensurePhoneUnique(phone, null);
-        campusService.ensureCampusEnabled(student.getCampusId());
-        student.setName(student.getName().trim());
+        campusService.ensureCampusEnabled(request.getCampusId());
+        Student student = new Student();
+        student.setName(request.getName().trim());
         student.setPhone(phone);
+        student.setCampusId(request.getCampusId());
+        student.setRemark(request.getRemark());
         Student saved = studentRepository.save(student);
         auditLogService.log("Student", saved.getId(), "CREATE", "新建学员: " + saved.getName());
         return saved;

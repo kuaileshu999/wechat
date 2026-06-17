@@ -3,10 +3,12 @@ package com.studyroom.controller;
 import com.studyroom.common.ApiResponse;
 import com.studyroom.common.PageResult;
 import com.studyroom.dto.BatchConsumptionRequest;
+import com.studyroom.dto.ConsumptionOrderContextVO;
+import com.studyroom.dto.ConsumptionRecordVO;
 import com.studyroom.dto.ConsumptionRequest;
 import com.studyroom.dto.ConsumptionUpdateRequest;
+import com.studyroom.dto.PendingOrderVO;
 import com.studyroom.entity.ConsumptionRecord;
-import com.studyroom.entity.Order;
 import com.studyroom.service.ConsumptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,19 +24,31 @@ public class ConsumptionController {
     private final ConsumptionService consumptionService;
 
     @GetMapping("/completed")
-    public ApiResponse<PageResult<ConsumptionRecord>> completed(
+    public ApiResponse<PageResult<ConsumptionRecordVO>> completed(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success(consumptionService.listCompleted(page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword) {
+        return ApiResponse.success(consumptionService.listCompleted(page, size, keyword));
     }
 
     @GetMapping("/pending-orders")
-    public ApiResponse<List<Order>> pendingOrders() {
-        return ApiResponse.success(consumptionService.listPendingOrders());
+    public ApiResponse<List<PendingOrderVO>> pendingOrders(
+            @RequestParam(required = false) String keyword) {
+        return ApiResponse.success(consumptionService.listPendingOrders(keyword));
+    }
+
+    @GetMapping("/order/{orderId}/records")
+    public ApiResponse<List<ConsumptionRecordVO>> orderRecords(@PathVariable Long orderId) {
+        return ApiResponse.success(consumptionService.listOrderRecords(orderId));
+    }
+
+    @GetMapping("/order-context/{orderId}")
+    public ApiResponse<ConsumptionOrderContextVO> orderContext(@PathVariable Long orderId) {
+        return ApiResponse.success(consumptionService.getOrderContext(orderId));
     }
 
     @PostMapping
-    public ApiResponse<ConsumptionRecord> consume(@Valid @RequestBody ConsumptionRequest request) {
+    public ApiResponse<List<ConsumptionRecord>> consume(@Valid @RequestBody ConsumptionRequest request) {
         return ApiResponse.success(consumptionService.consume(request));
     }
 

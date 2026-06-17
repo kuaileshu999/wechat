@@ -30,6 +30,15 @@ public class ConsumptionRecord {
     @Column(name = "course_id", nullable = false)
     private Long courseId;
 
+    @Column(name = "teacher_id")
+    private Long teacherId;
+
+    @Column(name = "class_time")
+    private LocalDateTime classTime;
+
+    @Column(name = "class_end_time")
+    private LocalDateTime classEndTime;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "consumption_mode", nullable = false, length = 20)
     private ConsumptionMode consumptionMode;

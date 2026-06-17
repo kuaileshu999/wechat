@@ -58,6 +58,8 @@ public class OrderService {
         Course course = courseRepository.findById(order.getCourseId()).orElse(null);
         Campus campus = campusRepository.findById(order.getCampusId()).orElse(null);
         Employee salesperson = employeeRepository.findById(order.getSalespersonId()).orElse(null);
+        Employee teacher = order.getTeacherId() != null
+                ? employeeRepository.findById(order.getTeacherId()).orElse(null) : null;
 
         BigDecimal effectivePaid = order.getPaidAmount().subtract(order.getRefundedAmount());
         BigDecimal pendingAmount = effectivePaid.subtract(order.getConsumedAmount()).max(BigDecimal.ZERO);
@@ -71,6 +73,7 @@ public class OrderService {
                 .courseName(course != null ? course.getName() : "")
                 .campusName(campus != null ? campus.getName() : "")
                 .salespersonName(salesperson != null ? salesperson.getName() : "")
+                .teacherName(teacher != null ? teacher.getName() : "")
                 .pendingAmount(pendingAmount)
                 .pendingHours(pendingHours)
                 .refunds(refundRepository.findByOrderIdOrderByCreatedAtDesc(id))
@@ -109,6 +112,7 @@ public class OrderService {
         order.setPaymentMethod(request.getPaymentMethod());
         order.setPaymentDate(request.getPaymentDate());
         order.setSalespersonId(request.getSalespersonId());
+        order.setTeacherId(validateTeacherId(request.getTeacherId(), request.getCampusId()));
         order.setRemark(request.getRemark());
         order.setCreatedBy(SecurityUtils.getCurrentUserId());
 
@@ -158,11 +162,27 @@ public class OrderService {
         order.setPaymentMethod(request.getPaymentMethod());
         order.setPaymentDate(request.getPaymentDate());
         order.setSalespersonId(request.getSalespersonId());
+        order.setTeacherId(validateTeacherId(request.getTeacherId(), order.getCampusId()));
         order.setRemark(request.getRemark());
 
         Order saved = orderRepository.save(order);
         auditLogService.log("Order", saved.getId(), "UPDATE", "编辑订单 " + saved.getOrderNo());
         return saved;
+    }
+
+    private Long validateTeacherId(Long teacherId, Long campusId) {
+        if (teacherId == null) {
+            return null;
+        }
+        Employee teacher = employeeRepository.findById(teacherId)
+                .orElseThrow(() -> new BusinessException("上课老师不存在"));
+        if (!teacher.getCampusId().equals(campusId)) {
+            throw new BusinessException("上课老师不属于该校区");
+        }
+        if (teacher.getEmploymentStatus() != com.studyroom.enums.EmploymentStatus.ACTIVE) {
+            throw new BusinessException("上课老师已离职");
+        }
+        return teacherId;
     }
 
     @Transactional

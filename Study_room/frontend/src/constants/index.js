@@ -14,8 +14,8 @@ export const PAYMENT_METHODS = [
 ]
 
 export const CONSUMPTION_MODES = [
-  { label: '每次扣金额', value: 'AMOUNT' },
-  { label: '每次扣课时', value: 'HOURS' }
+  { label: '按金额消课', value: 'AMOUNT' },
+  { label: '按课时消课', value: 'HOURS' }
 ]
 
 export const EMPLOYMENT_STATUS = [
@@ -32,6 +32,12 @@ export const ORDER_STATUS = [
 export const SCHEDULE_STATUS = [
   { label: '待上课', value: 'PENDING' },
   { label: '已上课', value: 'COMPLETED' }
+]
+
+export const AUDIT_ACTIONS = [
+  { label: '新建', value: 'CREATE' },
+  { label: '修改', value: 'UPDATE' },
+  { label: '删除', value: 'DELETE' }
 ]
 
 export function labelOf(list, value) {

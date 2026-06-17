@@ -39,6 +39,7 @@ public class ScheduleService {
     private final EmployeeRepository employeeRepository;
     private final StudentRepository studentRepository;
     private final CourseTypeRepository courseTypeRepository;
+    private final OrderRepository orderRepository;
     private final SysUserRepository userRepository;
     private final CampusService campusService;
     private final AuditLogService auditLogService;
@@ -226,6 +227,13 @@ public class ScheduleService {
             if (!student.getCampusId().equals(request.getCampusId())) {
                 throw new BusinessException("学员不属于该校区");
             }
+            ensureStudentHasPendingAmount(request.getStudentId(), request.getCampusId());
+        }
+    }
+
+    private void ensureStudentHasPendingAmount(Long studentId, Long campusId) {
+        if (!orderRepository.hasPendingAmountOrder(studentId, campusId)) {
+            throw new BusinessException("学员需有订单且存在未消课金额");
         }
     }
 
@@ -286,10 +294,9 @@ public class ScheduleService {
         String teacherName = getCellString(row.getCell(0));
         String typeText = getCellString(row.getCell(1));
         String studentText = getCellString(row.getCell(2));
-        String title = getCellString(row.getCell(3));
-        LocalDateTime startTime = normalizeScheduleTime(getCellDateTime(row.getCell(4)), "开始时间");
-        LocalDateTime endTime = normalizeScheduleTime(getCellDateTime(row.getCell(5)), "结束时间");
-        String remark = getCellString(row.getCell(6));
+        LocalDateTime startTime = normalizeScheduleTime(getCellDateTime(row.getCell(3)), "开始时间");
+        LocalDateTime endTime = normalizeScheduleTime(getCellDateTime(row.getCell(4)), "结束时间");
+        String remark = getCellString(row.getCell(5));
 
         if (teacherName == null || teacherName.isBlank()) {
             throw new BusinessException("授课老师不能为空");
@@ -310,7 +317,7 @@ public class ScheduleService {
         request.setTeacherId(teacher.getId());
         request.setCourseTypeId(courseType.getId());
         request.setStudentId(studentId);
-        request.setTitle(title);
+        request.setTitle(null);
         request.setStartTime(startTime);
         request.setEndTime(endTime);
         request.setClassroom(null);
@@ -338,6 +345,7 @@ public class ScheduleService {
         if (text.matches("\\d{11}")) {
             Student student = studentRepository.findByCampusIdAndPhone(campusId, text)
                     .orElseThrow(() -> new BusinessException("未找到学员手机号: " + text));
+            ensureStudentHasPendingAmount(student.getId(), campusId);
             return student.getId();
         }
         List<Student> students = studentRepository.findByCampusIdAndName(campusId, text);
@@ -347,6 +355,7 @@ public class ScheduleService {
         if (students.size() > 1) {
             throw new BusinessException("存在多名同名学员: " + text);
         }
+        ensureStudentHasPendingAmount(students.get(0).getId(), campusId);
         return students.get(0).getId();
     }
 
@@ -375,7 +384,7 @@ public class ScheduleService {
     }
 
     private boolean isRowEmpty(Row row) {
-        for (int i = 0; i <= 6; i++) {
+        for (int i = 0; i <= 5; i++) {
             String val = getCellString(row.getCell(i));
             if (val != null && !val.isBlank()) {
                 return false;

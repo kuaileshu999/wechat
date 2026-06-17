@@ -39,7 +39,8 @@
     <el-pagination class="mt-16" background layout="total, prev, pager, next"
                    :total="total" :current-page="page" @current-change="onPageChange" />
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑订单' : '新建订单'" width="560px">
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑订单' : '新建订单'" width="560px"
+               body-class="order-dialog-body">
       <el-form :model="form" label-width="100px">
         <el-form-item label="校区" required>
           <el-select v-model="form.campusId" style="width: 100%" :disabled="!!editingId" @change="onCampusChange">
@@ -73,8 +74,14 @@
           <el-date-picker v-model="form.paymentDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="销售人" required>
-          <el-select v-model="form.salespersonId" style="width: 100%" :disabled="!form.campusId">
+          <el-select v-model="form.salespersonId" filterable style="width: 100%" :disabled="!form.campusId">
             <el-option v-for="e in employees" :key="e.id" :label="e.name" :value="e.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="主讲老师">
+          <el-select v-model="form.teacherId" filterable clearable style="width: 100%" :disabled="!form.campusId"
+                     placeholder="选填">
+            <el-option v-for="e in employees" :key="'t-' + e.id" :label="e.name" :value="e.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
@@ -151,7 +158,7 @@ const employees = ref([])
 const form = reactive({
   campusId: null, studentId: null, courseId: null, totalHours: 1,
   paidAmount: 1000, paymentMethod: 'WECHAT',
-  paymentDate: dayjs().format('YYYY-MM-DD'), salespersonId: null, remark: ''
+  paymentDate: dayjs().format('YYYY-MM-DD'), salespersonId: null, teacherId: null, remark: ''
 })
 const refundForm = reactive({
   orderId: null, orderNo: '', paidAmount: 0, consumedAmount: 0, refundedAmount: 0,
@@ -164,8 +171,13 @@ const { list, total, page, loading, load, onPageChange } = usePagination(params 
 })
 
 async function searchStudents(keyword) {
-  if (!keyword) return
-  students.value = await request.get('/students/search', { params: { keyword } })
+  if (!keyword || !form.campusId) {
+    students.value = []
+    return
+  }
+  students.value = await request.get('/students/search', {
+    params: { keyword, campusId: form.campusId }
+  })
 }
 
 async function loadEnabledCourses() {
@@ -180,6 +192,7 @@ async function onCampusChange(campusId) {
   form.studentId = null
   form.courseId = null
   form.salespersonId = null
+  form.teacherId = null
   students.value = []
   employees.value = []
   if (campusId) {
@@ -190,15 +203,15 @@ async function onCampusChange(campusId) {
   }
 }
 
-function openDialog() {
+async function openDialog() {
   editingId.value = null
   Object.assign(form, {
     campusId: campuses.value[0]?.id || null,
     studentId: null, courseId: null, totalHours: 1, paidAmount: 1000,
     paymentMethod: 'WECHAT', paymentDate: dayjs().format('YYYY-MM-DD'),
-    salespersonId: null, remark: ''
+    salespersonId: null, teacherId: null, remark: ''
   })
-  onCampusChange(form.campusId)
+  await onCampusChange(form.campusId)
   dialogVisible.value = true
 }
 
@@ -215,6 +228,7 @@ async function openEdit(row) {
     paymentMethod: order.paymentMethod,
     paymentDate: order.paymentDate,
     salespersonId: order.salespersonId,
+    teacherId: order.teacherId || null,
     remark: order.remark || ''
   })
   students.value = [{
@@ -239,6 +253,7 @@ async function submit() {
     paymentMethod: form.paymentMethod,
     paymentDate: form.paymentDate,
     salespersonId: form.salespersonId,
+    teacherId: form.teacherId || null,
     remark: form.remark
   }
   if (editingId.value) {
@@ -292,4 +307,11 @@ onMounted(load)
 .mt-16 { margin-top: 16px; }
 .refundable { color: #e6a23c; font-weight: 600; }
 .tip { margin-left: 8px; font-size: 12px; color: #909399; }
+</style>
+
+<style>
+.order-dialog-body {
+  max-height: 65vh;
+  overflow-y: auto;
+}
 </style>

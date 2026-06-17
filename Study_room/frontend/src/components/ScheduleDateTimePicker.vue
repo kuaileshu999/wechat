@@ -14,7 +14,7 @@
       v-model="timePart"
       :size="size"
       start="00:00"
-      step="00:05"
+      :step="step"
       end="23:55"
       placeholder="时间"
       style="width: 100%"
@@ -29,16 +29,18 @@ import dayjs from 'dayjs'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  size: { type: String, default: 'default' }
+  size: { type: String, default: 'default' },
+  step: { type: String, default: '00:05' }
 })
 const emit = defineEmits(['update:modelValue'])
 
 const datePart = ref('')
 const timePart = ref('')
 
-function roundToFiveMinuteTime(value) {
+function roundToStepTime(value) {
+  const stepMinutes = parseInt(props.step.split(':')[1], 10) || 5
   const total = dayjs(value).hour() * 60 + dayjs(value).minute()
-  const rounded = Math.round(total / 5) * 5
+  const rounded = Math.round(total / stepMinutes) * stepMinutes
   return dayjs(value).startOf('day').add(rounded, 'minute').format('HH:mm')
 }
 
@@ -50,7 +52,7 @@ function syncFromModel(value) {
   }
   const d = dayjs(value)
   datePart.value = d.format('YYYY-MM-DD')
-  timePart.value = roundToFiveMinuteTime(value)
+  timePart.value = roundToStepTime(value)
 }
 
 function emitValue() {

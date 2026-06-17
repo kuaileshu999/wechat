@@ -53,7 +53,11 @@ npm run dev
 
 访问：`http://localhost:5173`
 
-### 默认账号
+### 生产部署（阿里云）
+
+详见 **[deploy/README.md](deploy/README.md)**（完整双项目部署说明）。
+
+默认账号
 
 - 用户名：`admin`
 - 密码：`Admin@123`

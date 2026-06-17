@@ -22,6 +22,7 @@
       <el-descriptions-item label="待消课时">{{ detail.pendingHours }}</el-descriptions-item>
       <el-descriptions-item label="已退费">{{ detail.order.refundedAmount }}</el-descriptions-item>
       <el-descriptions-item label="销售人">{{ detail.salespersonName }}</el-descriptions-item>
+      <el-descriptions-item label="主讲老师">{{ detail.teacherName || '-' }}</el-descriptions-item>
       <el-descriptions-item label="备注">{{ detail.order.remark }}</el-descriptions-item>
     </el-descriptions>
 
@@ -41,7 +42,9 @@
       <el-table :data="detail?.auditLogs || []" border>
         <el-table-column prop="operatorName" label="修改人" />
         <el-table-column prop="createdAt" label="修改时间" />
-        <el-table-column prop="action" label="操作" width="100" />
+        <el-table-column label="操作" width="100">
+          <template #default="{ row }">{{ labelOf(AUDIT_ACTIONS, row.action) }}</template>
+        </el-table-column>
         <el-table-column prop="content" label="修改内容" />
       </el-table>
     </el-card>
@@ -92,7 +95,7 @@ import { useRoute } from 'vue-router'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { showSuccess } from '@/composables/useCommon'
-import { PAYMENT_METHODS, ORDER_STATUS, labelOf } from '@/constants'
+import { PAYMENT_METHODS, ORDER_STATUS, AUDIT_ACTIONS, labelOf } from '@/constants'
 
 const route = useRoute()
 const userStore = useUserStore()

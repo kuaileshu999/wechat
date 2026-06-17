@@ -17,6 +17,7 @@ public class OrderDetailVO {
     private String courseName;
     private String campusName;
     private String salespersonName;
+    private String teacherName;
     private BigDecimal pendingAmount;
     private BigDecimal pendingHours;
     private List<OrderRefund> refunds;

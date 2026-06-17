@@ -2,9 +2,11 @@ package com.studyroom.controller;
 
 import com.studyroom.common.ApiResponse;
 import com.studyroom.common.PageResult;
+import com.studyroom.dto.EmployeeUpdateRequest;
 import com.studyroom.entity.Employee;
 import com.studyroom.enums.EmploymentStatus;
 import com.studyroom.service.EmployeeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,6 +40,12 @@ public class EmployeeController {
     @PostMapping
     public ApiResponse<Employee> create(@RequestBody Employee employee) {
         return ApiResponse.success(employeeService.create(employee));
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<Employee> update(@PathVariable Long id,
+                                        @Valid @RequestBody EmployeeUpdateRequest request) {
+        return ApiResponse.success(employeeService.update(id, request));
     }
 
     @PutMapping("/{id}/status")

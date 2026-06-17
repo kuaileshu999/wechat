@@ -2,10 +2,13 @@ package com.studyroom.service;
 
 import com.studyroom.common.BusinessException;
 import com.studyroom.common.PageResult;
+import com.studyroom.dto.EmployeeUpdateRequest;
 import com.studyroom.entity.Employee;
 import com.studyroom.enums.EmploymentStatus;
 import com.studyroom.repository.EmployeeRepository;
 import com.studyroom.repository.SysUserRepository;
+import com.studyroom.security.SecurityUtils;
+import com.studyroom.util.PhoneValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,10 +49,37 @@ public class EmployeeService {
         if (employee.getCampusId() == null) {
             throw new BusinessException("请选择校区");
         }
+        if (employee.getName() == null || employee.getName().isBlank()) {
+            throw new BusinessException("员工姓名不能为空");
+        }
+        String phone = normalizePhone(employee.getPhone());
+        ensurePhoneUnique(phone, null);
         campusService.ensureCampusEnabled(employee.getCampusId());
+        employee.setName(employee.getName().trim());
+        employee.setPhone(phone);
         employee.setEmploymentStatus(EmploymentStatus.ACTIVE);
         Employee saved = employeeRepository.save(employee);
         auditLogService.log("Employee", saved.getId(), "CREATE", "新建员工: " + saved.getName());
+        return saved;
+    }
+
+    @Transactional
+    public Employee update(Long id, EmployeeUpdateRequest request) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("员工不存在"));
+        SecurityUtils.checkCampusAccess(employee.getCampusId());
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new BusinessException("员工姓名不能为空");
+        }
+        String phone = normalizePhone(request.getPhone());
+        ensurePhoneUnique(phone, id);
+        campusService.ensureCampusEnabled(request.getCampusId());
+        SecurityUtils.checkCampusAccess(request.getCampusId());
+        employee.setName(request.getName().trim());
+        employee.setPhone(phone);
+        employee.setCampusId(request.getCampusId());
+        Employee saved = employeeRepository.save(employee);
+        auditLogService.log("Employee", saved.getId(), "UPDATE", "编辑员工: " + saved.getName());
         return saved;
     }
 
@@ -69,5 +99,19 @@ public class EmployeeService {
         }
         auditLogService.log("Employee", saved.getId(), "UPDATE", "更新任职状态: " + status);
         return saved;
+    }
+
+    private String normalizePhone(String phone) {
+        PhoneValidator.validateEmployee(phone);
+        return phone.trim();
+    }
+
+    private void ensurePhoneUnique(String phone, Long excludeId) {
+        boolean exists = excludeId == null
+                ? employeeRepository.existsByPhone(phone)
+                : employeeRepository.existsByPhoneAndIdNot(phone, excludeId);
+        if (exists) {
+            throw new BusinessException("手机号已存在");
+        }
     }
 }

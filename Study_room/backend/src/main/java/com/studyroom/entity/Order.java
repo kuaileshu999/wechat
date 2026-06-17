@@ -48,6 +48,9 @@ public class Order {
     @Column(name = "salesperson_id", nullable = false)
     private Long salespersonId;
 
+    @Column(name = "teacher_id")
+    private Long teacherId;
+
     @Column(length = 500)
     private String remark;
 

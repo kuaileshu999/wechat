@@ -2,8 +2,10 @@ package com.studyroom.controller;
 
 import com.studyroom.common.ApiResponse;
 import com.studyroom.common.PageResult;
+import com.studyroom.dto.CourseUpdateRequest;
 import com.studyroom.entity.Course;
 import com.studyroom.service.CourseService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,6 +39,12 @@ public class CourseController {
     @PostMapping
     public ApiResponse<Course> create(@RequestBody Course course) {
         return ApiResponse.success(courseService.create(course));
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<Course> update(@PathVariable Long id,
+                                      @Valid @RequestBody CourseUpdateRequest request) {
+        return ApiResponse.success(courseService.update(id, request));
     }
 
     @PutMapping("/{id}/status")

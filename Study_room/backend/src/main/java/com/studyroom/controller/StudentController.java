@@ -2,6 +2,7 @@ package com.studyroom.controller;
 
 import com.studyroom.common.ApiResponse;
 import com.studyroom.common.PageResult;
+import com.studyroom.dto.StudentCreateRequest;
 import com.studyroom.dto.StudentUpdateRequest;
 import com.studyroom.entity.Student;
 import com.studyroom.service.StudentService;
@@ -28,13 +29,20 @@ public class StudentController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<List<Student>> search(@RequestParam String keyword) {
-        return ApiResponse.success(studentService.search(keyword));
+    public ApiResponse<List<Student>> search(@RequestParam String keyword,
+                                             @RequestParam(required = false) Long campusId) {
+        return ApiResponse.success(studentService.search(keyword, campusId));
+    }
+
+    @GetMapping("/search-for-schedule")
+    public ApiResponse<List<Student>> searchForSchedule(@RequestParam String keyword,
+                                                      @RequestParam Long campusId) {
+        return ApiResponse.success(studentService.searchForSchedule(keyword, campusId));
     }
 
     @PostMapping
-    public ApiResponse<Student> create(@RequestBody Student student) {
-        return ApiResponse.success(studentService.create(student));
+    public ApiResponse<Student> create(@Valid @RequestBody StudentCreateRequest request) {
+        return ApiResponse.success(studentService.create(request));
     }
 
     @PutMapping("/{id}")

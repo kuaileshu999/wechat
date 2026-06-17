@@ -3,7 +3,9 @@ package com.studyroom.service;
 import com.studyroom.common.BusinessException;
 import com.studyroom.common.CampusScope;
 import com.studyroom.common.PageResult;
+import com.studyroom.dto.CourseUpdateRequest;
 import com.studyroom.entity.Course;
+import com.studyroom.enums.ConsumptionMode;
 import com.studyroom.repository.CourseRepository;
 import com.studyroom.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -48,8 +51,26 @@ public class CourseService {
     @Transactional
     public Course create(Course course) {
         campusService.ensureCampusEnabled(course.getCampusId());
+        validateConsumptionFields(course);
         Course saved = courseRepository.save(course);
         auditLogService.log("Course", saved.getId(), "CREATE", "新建课程: " + saved.getName());
+        return saved;
+    }
+
+    @Transactional
+    public Course update(Long id, CourseUpdateRequest request) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("课程不存在"));
+        SecurityUtils.checkCampusAccess(course.getCampusId());
+        course.setName(request.getName().trim());
+        course.setSubject(request.getSubject());
+        course.setConsumptionMode(request.getConsumptionMode());
+        course.setUnitAmount(request.getUnitAmount());
+        course.setUnitHours(request.getUnitHours());
+        course.setSessionMinutes(request.getSessionMinutes());
+        validateConsumptionFields(course);
+        Course saved = courseRepository.save(course);
+        auditLogService.log("Course", saved.getId(), "UPDATE", "修改课程: " + saved.getName());
         return saved;
     }
 
@@ -62,5 +83,29 @@ public class CourseService {
         Course saved = courseRepository.save(course);
         auditLogService.log("Course", saved.getId(), "UPDATE", "更新状态: " + status);
         return saved;
+    }
+
+    private void validateConsumptionFields(Course course) {
+        if (course.getConsumptionMode() == null) {
+            course.setConsumptionMode(ConsumptionMode.HOURS);
+        }
+        if (course.getSessionMinutes() == null || course.getSessionMinutes() < 1) {
+            throw new BusinessException("每次消课时长必须为正整数");
+        }
+        if (course.getConsumptionMode() == ConsumptionMode.HOURS) {
+            if (course.getUnitHours() == null || course.getUnitHours().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BusinessException("每次消课课时必须大于0");
+            }
+            if (course.getUnitAmount() == null) {
+                course.setUnitAmount(BigDecimal.ZERO);
+            }
+        } else if (course.getConsumptionMode() == ConsumptionMode.AMOUNT) {
+            if (course.getUnitAmount() == null || course.getUnitAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BusinessException("每次消课金额必须大于0");
+            }
+            if (course.getUnitHours() == null) {
+                course.setUnitHours(BigDecimal.ZERO);
+            }
+        }
     }
 }

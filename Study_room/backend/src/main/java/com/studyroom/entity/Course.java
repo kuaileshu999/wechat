@@ -42,6 +42,9 @@ public class Course {
     @Column(name = "unit_hours", nullable = false, precision = 10, scale = 2)
     private BigDecimal unitHours = BigDecimal.ONE;
 
+    @Column(name = "session_minutes", nullable = false)
+    private Integer sessionMinutes = 60;
+
     @Column(nullable = false)
     private Integer status = 1;
 

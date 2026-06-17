@@ -96,7 +96,12 @@ const { list, total, page, loading, load, onPageChange } = usePagination(
 )
 
 function validatePhone(phone) {
-  if (!PHONE_PATTERN.test(phone)) {
+  const value = phone?.trim()
+  if (!value) {
+    ElMessage.warning('请输入手机号')
+    return false
+  }
+  if (!PHONE_PATTERN.test(value)) {
     ElMessage.warning('手机号必须是11位数字')
     return false
   }
@@ -119,7 +124,7 @@ async function submit() {
     ElMessage.warning('请输入学员姓名')
     return
   }
-  if (!validatePhone(form.phone?.trim())) {
+  if (!validatePhone(form.phone)) {
     return
   }
   if (editingId.value) {

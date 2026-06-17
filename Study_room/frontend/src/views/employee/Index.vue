@@ -22,8 +22,10 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160">
+      <el-table-column label="操作" width="220">
         <template #default="{ row }">
+          <el-button v-if="userStore.hasPermission('employee:create')" link type="primary"
+                     @click="openDialog(row)">编辑</el-button>
           <el-button v-if="row.employmentStatus === 'ACTIVE'" link type="warning"
                      @click="updateStatus(row.id, 'RESIGNED')">设为离职</el-button>
           <el-button v-else link type="success" @click="updateStatus(row.id, 'ACTIVE')">恢复在职</el-button>
@@ -33,13 +35,13 @@
     <el-pagination class="mt-16" background layout="total, prev, pager, next"
                    :total="total" :current-page="page" @current-change="onPageChange" />
 
-    <el-dialog v-model="dialogVisible" title="新建员工" width="480px">
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑员工' : '新建员工'" width="480px">
       <el-form :model="form" label-width="90px">
         <el-form-item label="员工姓名" required>
           <el-input v-model="form.name" />
         </el-form-item>
         <el-form-item label="手机号" required>
-          <el-input v-model="form.phone" />
+          <el-input v-model="form.phone" maxlength="11" placeholder="11位数字" />
         </el-form-item>
         <el-form-item label="所属校区" required>
           <el-select v-model="form.campusId" style="width: 100%">
@@ -67,27 +69,57 @@ const userStore = useUserStore()
 const { campuses, campusMap } = useCampuses()
 const keyword = ref('')
 const dialogVisible = ref(false)
+const editingId = ref(null)
 const form = reactive({ name: '', phone: '', campusId: null })
+const PHONE_PATTERN = /^\d{11}$/
 
 const { list, total, page, loading, load, onPageChange } = usePagination(
   params => request.get('/employees', { params: { ...params, name: keyword.value || undefined } })
 )
 
-function openDialog() {
-  Object.assign(form, { name: '', phone: '', campusId: campuses.value[0]?.id || null })
+function openDialog(row) {
+  if (row) {
+    editingId.value = row.id
+    Object.assign(form, { name: row.name, phone: row.phone, campusId: row.campusId })
+  } else {
+    editingId.value = null
+    Object.assign(form, { name: '', phone: '', campusId: campuses.value[0]?.id || null })
+  }
   dialogVisible.value = true
 }
 
-async function submit() {
+function validateForm() {
   if (!form.name?.trim()) {
     ElMessage.warning('请输入员工姓名')
-    return
+    return false
+  }
+  if (!form.phone?.trim()) {
+    ElMessage.warning('请输入手机号')
+    return false
+  }
+  if (!PHONE_PATTERN.test(form.phone.trim())) {
+    ElMessage.warning('手机号必须是11位数字')
+    return false
   }
   if (!form.campusId) {
     ElMessage.warning('请选择所属校区')
-    return
+    return false
   }
-  await request.post('/employees', form)
+  return true
+}
+
+async function submit() {
+  if (!validateForm()) return
+  const payload = {
+    name: form.name.trim(),
+    phone: form.phone.trim(),
+    campusId: form.campusId
+  }
+  if (editingId.value) {
+    await request.put(`/employees/${editingId.value}`, payload)
+  } else {
+    await request.post('/employees', payload)
+  }
   showSuccess()
   dialogVisible.value = false
   load()

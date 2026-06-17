@@ -36,5 +36,7 @@ public class OrderCreateRequest {
     @NotNull(message = "销售人不能为空")
     private Long salespersonId;
 
+    private Long teacherId;
+
     private String remark;
 }

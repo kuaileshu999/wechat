@@ -19,6 +19,10 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findByCampusIdAndNameAndEmploymentStatus(Long campusId, String name, EmploymentStatus status);
 
+    boolean existsByPhone(String phone);
+
+    boolean existsByPhoneAndIdNot(String phone, Long id);
+
     @Query("SELECT e FROM Employee e WHERE e.employmentStatus = :status "
             + "AND NOT EXISTS (SELECT u FROM SysUser u WHERE u.employeeId = e.id)")
     List<Employee> findActiveWithoutUser(@Param("status") EmploymentStatus status);

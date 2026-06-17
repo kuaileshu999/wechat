@@ -19,4 +19,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "AND (:startDate IS NULL OR o.paymentDate >= :startDate) AND (:endDate IS NULL OR o.paymentDate <= :endDate)")
     Page<Order> search(@Param("campusIds") List<Long> campusIds, @Param("campusId") Long campusId,
                        @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
+
+    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END FROM Order o "
+            + "WHERE o.studentId = :studentId AND o.campusId = :campusId "
+            + "AND o.status <> com.studyroom.enums.OrderStatus.REFUNDED "
+            + "AND (o.paidAmount - o.refundedAmount - o.consumedAmount) > 0")
+    boolean hasPendingAmountOrder(@Param("studentId") Long studentId, @Param("campusId") Long campusId);
 }
