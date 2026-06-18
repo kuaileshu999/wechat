@@ -41,4 +41,9 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     Optional<Student> findByCampusIdAndPhone(Long campusId, String phone);
 
     List<Student> findByCampusIdAndName(Long campusId, String name);
+
+    @Query("SELECT s FROM Student s WHERE s.campusId = :campusId AND s.campusId IN :campusIds ORDER BY s.name")
+    List<Student> findByCampusInScope(@Param("campusIds") List<Long> campusIds,
+                                      @Param("campusId") Long campusId,
+                                      Pageable pageable);
 }

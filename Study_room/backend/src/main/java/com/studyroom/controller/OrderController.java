@@ -4,15 +4,19 @@ import com.studyroom.common.ApiResponse;
 import com.studyroom.common.PageResult;
 import com.studyroom.dto.OrderCreateRequest;
 import com.studyroom.dto.OrderDetailVO;
+import com.studyroom.dto.OrderListVO;
 import com.studyroom.dto.OrderUpdateRequest;
 import com.studyroom.dto.RefundRequest;
 import com.studyroom.entity.Order;
 import com.studyroom.entity.OrderRefund;
+import com.studyroom.service.ExportService;
 import com.studyroom.service.OrderService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDate;
 
 @RestController
@@ -21,18 +25,34 @@ import java.time.LocalDate;
 public class OrderController {
 
     private final OrderService orderService;
+    private final ExportService exportService;
 
     @GetMapping
-    public ApiResponse<PageResult<Order>> list(
+    public ApiResponse<PageResult<OrderListVO>> list(
             @RequestParam(required = false) Long campusId,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String unionPayOrderNo,
+            @RequestParam(required = false) String orderNo,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success(orderService.list(campusId, startDate, endDate, page, size));
+        return ApiResponse.success(orderService.list(campusId, startDate, endDate, keyword, unionPayOrderNo, orderNo, page, size));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/export")
+    public void export(
+            HttpServletResponse response,
+            @RequestParam(required = false) Long campusId,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String unionPayOrderNo,
+            @RequestParam(required = false) String orderNo) throws IOException {
+        exportService.exportOrders(response, campusId, startDate, endDate, keyword, unionPayOrderNo, orderNo);
+    }
+
+    @GetMapping("/{id:\\d+}")
     public ApiResponse<OrderDetailVO> detail(@PathVariable Long id) {
         return ApiResponse.success(orderService.getDetail(id));
     }

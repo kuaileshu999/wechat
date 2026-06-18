@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,7 @@ public class FinanceService {
                     .build());
         }
 
-        List<Order> orders = orderRepository.search(campusIds, null, startDate, endDate,
+        List<Order> orders = orderRepository.search(campusIds, null, startDate, endDate, null, null, null,
                 org.springframework.data.domain.PageRequest.of(0, 10000)).getContent();
 
         for (Order order : orders) {
@@ -61,7 +62,9 @@ public class FinanceService {
             if (vo == null) continue;
             accumulate(vo, order);
         }
-        return new ArrayList<>(map.values());
+        List<FinanceReportVO> result = new ArrayList<>(map.values());
+        result.sort(Comparator.comparing(FinanceReportVO::getCampusName, Comparator.nullsLast(String::compareTo)));
+        return result;
     }
 
     private List<FinanceReportVO> aggregate(LocalDate startDate, LocalDate endDate, Long campusId, String type) {
@@ -74,8 +77,12 @@ public class FinanceService {
             campusIds = List.of(campusId);
         }
 
+        String campusName = campusId != null
+                ? campusRepository.findById(campusId).map(Campus::getName).orElse("")
+                : "";
+
         Map<String, FinanceReportVO> map = new HashMap<>();
-        List<Order> orders = orderRepository.search(campusIds, campusId, startDate, endDate,
+        List<Order> orders = orderRepository.search(campusIds, campusId, startDate, endDate, null, null, null,
                 org.springframework.data.domain.PageRequest.of(0, 10000)).getContent();
 
         for (Order order : orders) {
@@ -84,14 +91,21 @@ public class FinanceService {
             FinanceReportVO vo = map.computeIfAbsent(key, k -> FinanceReportVO.builder()
                     .date(type.equals("DAY") ? order.getPaymentDate() : null)
                     .month(type.equals("MONTH") ? k : null)
-                    .campusId(order.getCampusId())
+                    .campusId(campusId)
+                    .campusName(campusName)
                     .totalPaidAmount(BigDecimal.ZERO)
                     .totalConsumedAmount(BigDecimal.ZERO)
                     .totalPendingAmount(BigDecimal.ZERO)
                     .build());
             accumulate(vo, order);
         }
-        return new ArrayList<>(map.values());
+        List<FinanceReportVO> result = new ArrayList<>(map.values());
+        if ("DAY".equals(type)) {
+            result.sort(Comparator.comparing(FinanceReportVO::getDate, Comparator.nullsLast(Comparator.reverseOrder())));
+        } else if ("MONTH".equals(type)) {
+            result.sort(Comparator.comparing(FinanceReportVO::getMonth, Comparator.nullsLast(Comparator.reverseOrder())));
+        }
+        return result;
     }
 
     private void accumulate(FinanceReportVO vo, Order order) {

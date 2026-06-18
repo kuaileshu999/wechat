@@ -106,7 +106,8 @@
       <el-table-column prop="remark" label="备注" show-overflow-tooltip />
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑排课' : '新建排课'" width="560px">
+    <el-drawer v-model="dialogVisible" :title="editingId ? '编辑排课' : '新建排课'"
+               direction="rtl" size="70%" destroy-on-close>
       <el-form :model="form" label-width="100px">
         <el-form-item label="校区" required>
           <el-select v-model="form.campusId" style="width: 100%" @change="onCampusChange">
@@ -144,12 +145,14 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
+        <div class="drawer-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submit">确定</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <el-dialog v-model="batchVisible" title="批量排课" width="1040px">
+    <el-drawer v-model="batchVisible" title="批量排课" direction="rtl" size="70%" destroy-on-close>
       <el-form label-width="90px">
         <el-form-item label="校区" required>
           <el-select v-model="batchForm.campusId" style="width: 240px" @change="onBatchCampusChange">
@@ -201,12 +204,14 @@
         </el-table-column>
       </el-table>
       <template #footer>
-        <el-button @click="batchVisible = false">取消</el-button>
-        <el-button type="primary" :loading="batchSubmitting" @click="submitBatch">确定</el-button>
+        <div class="drawer-footer">
+          <el-button @click="batchVisible = false">取消</el-button>
+          <el-button type="primary" :loading="batchSubmitting" @click="submitBatch">确定</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <el-dialog v-model="importVisible" title="Excel导入排课" width="520px">
+    <el-drawer v-model="importVisible" title="Excel导入排课" direction="rtl" size="70%" destroy-on-close>
       <el-form label-width="90px">
         <el-form-item label="校区" required>
           <el-select v-model="importCampusId" style="width: 100%">
@@ -220,10 +225,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="importVisible = false">取消</el-button>
-        <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
+        <div class="drawer-footer">
+          <el-button @click="importVisible = false">取消</el-button>
+          <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 

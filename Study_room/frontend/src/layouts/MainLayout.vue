@@ -56,6 +56,15 @@ function handleLogout() {
 
 .aside {
   background: #304156;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.aside :deep(.el-menu) {
+  flex: 1;
+  overflow-y: auto;
+  border-right: none;
 }
 
 .logo {

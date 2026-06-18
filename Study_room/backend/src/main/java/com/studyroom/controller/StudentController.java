@@ -29,9 +29,15 @@ public class StudentController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<List<Student>> search(@RequestParam String keyword,
+    public ApiResponse<List<Student>> search(@RequestParam(required = false) String keyword,
                                              @RequestParam(required = false) Long campusId) {
         return ApiResponse.success(studentService.search(keyword, campusId));
+    }
+
+    @GetMapping("/options")
+    public ApiResponse<List<Student>> options(@RequestParam Long campusId,
+                                              @RequestParam(required = false) String keyword) {
+        return ApiResponse.success(studentService.listOptions(campusId, keyword));
     }
 
     @GetMapping("/search-for-schedule")

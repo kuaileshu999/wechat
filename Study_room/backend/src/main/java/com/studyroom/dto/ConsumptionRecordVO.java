@@ -12,9 +12,14 @@ import java.time.LocalDateTime;
 public class ConsumptionRecordVO {
     private Long id;
     private Long orderId;
+    private String orderNo;
     private Long campusId;
+    private String campusName;
     private Long studentId;
     private Long courseId;
+    private String courseName;
+    private Long subjectId;
+    private String subjectName;
     private Long teacherId;
     private String teacherName;
     private String studentName;
@@ -25,6 +30,7 @@ public class ConsumptionRecordVO {
     private String status;
     private String batchNo;
     private String remark;
+    private String cancelReason;
     private LocalDateTime classTime;
     private LocalDateTime classEndTime;
     private Integer sessionMinutes;

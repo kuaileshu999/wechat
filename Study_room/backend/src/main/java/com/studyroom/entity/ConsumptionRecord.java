@@ -30,6 +30,9 @@ public class ConsumptionRecord {
     @Column(name = "course_id", nullable = false)
     private Long courseId;
 
+    @Column(name = "subject_id")
+    private Long subjectId;
+
     @Column(name = "teacher_id")
     private Long teacherId;
 
@@ -57,6 +60,9 @@ public class ConsumptionRecord {
 
     @Column(length = 500)
     private String remark;
+
+    @Column(name = "cancel_reason", length = 500)
+    private String cancelReason;
 
     @Column(name = "created_by")
     private Long createdBy;

@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class OrderCreateRequest {
@@ -30,13 +31,15 @@ public class OrderCreateRequest {
     @NotNull(message = "收款方式不能为空")
     private PaymentMethod paymentMethod;
 
+    private String unionPayOrderNo;
+
     @NotNull(message = "收款日期不能为空")
     private LocalDate paymentDate;
 
-    @NotNull(message = "销售人不能为空")
-    private Long salespersonId;
+    @NotEmpty(message = "销售人不能为空")
+    private List<Long> salespersonIds;
 
-    private Long teacherId;
+    private List<Long> teacherIds;
 
     private String remark;
 }

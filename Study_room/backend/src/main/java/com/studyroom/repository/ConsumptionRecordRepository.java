@@ -13,6 +13,16 @@ public interface ConsumptionRecordRepository extends JpaRepository<ConsumptionRe
     Page<ConsumptionRecord> findByCampusIdInAndStatus(List<Long> campusIds, String status, Pageable pageable);
 
     @Query("SELECT cr FROM ConsumptionRecord cr JOIN Student s ON s.id = cr.studentId "
+            + "WHERE cr.campusId IN :campusIds AND cr.status IN :statuses "
+            + "AND (:keyword IS NULL OR :keyword = '' OR s.name LIKE CONCAT('%', :keyword, '%') "
+            + "OR s.phone LIKE CONCAT('%', :keyword, '%')) "
+            + "ORDER BY cr.createdAt DESC")
+    Page<ConsumptionRecord> searchByStatuses(@Param("campusIds") List<Long> campusIds,
+                                             @Param("statuses") List<String> statuses,
+                                             @Param("keyword") String keyword,
+                                             Pageable pageable);
+
+    @Query("SELECT cr FROM ConsumptionRecord cr JOIN Student s ON s.id = cr.studentId "
             + "WHERE cr.campusId IN :campusIds AND cr.status = :status "
             + "AND (:keyword IS NULL OR :keyword = '' OR s.name LIKE CONCAT('%', :keyword, '%') "
             + "OR s.phone LIKE CONCAT('%', :keyword, '%'))")

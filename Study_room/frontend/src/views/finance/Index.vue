@@ -2,6 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <h2>财务管理</h2>
+      <el-button v-if="userStore.hasPermission('finance:export')" @click="exportFinance">导出</el-button>
     </div>
     <el-tabs v-model="activeTab" @tab-change="loadReport">
       <el-tab-pane label="按天统计" name="day">
@@ -47,8 +48,11 @@
 import { ref, onMounted } from 'vue'
 import dayjs from 'dayjs'
 import request from '@/utils/request'
+import { useUserStore } from '@/stores/user'
 import { useCampuses } from '@/composables/useCommon'
+import { downloadExport } from '@/utils/export'
 
+const userStore = useUserStore()
 const { campuses } = useCampuses()
 const activeTab = ref('day')
 const loading = ref(false)
@@ -75,5 +79,23 @@ async function loadReport() {
   }
 }
 
+async function exportFinance() {
+  const params = { type: activeTab.value }
+  if (activeTab.value === 'day') {
+    const [startDate, endDate] = dayRange.value || []
+    Object.assign(params, { startDate, endDate, campusId: campusId.value || undefined })
+  } else if (activeTab.value === 'month') {
+    Object.assign(params, { month: month.value, campusId: campusId.value || undefined })
+  } else {
+    const [startDate, endDate] = campusRange.value || []
+    Object.assign(params, { startDate, endDate })
+  }
+  await downloadExport('/finance/export', params, '财务导出.xlsx')
+}
+
 onMounted(loadReport)
 </script>
+
+<style scoped>
+.page-header { display: flex; align-items: center; justify-content: space-between; }
+</style>

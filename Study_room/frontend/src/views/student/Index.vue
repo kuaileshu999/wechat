@@ -28,7 +28,8 @@
     <el-pagination class="mt-16" background layout="total, prev, pager, next"
                    :total="total" :current-page="page" @current-change="onPageChange" />
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑学员' : '新建学员'" width="480px">
+    <el-drawer v-model="dialogVisible" :title="editingId ? '编辑学员' : '新建学员'"
+               direction="rtl" size="70%" destroy-on-close>
       <el-form :model="form" label-width="90px">
         <el-form-item label="学员姓名" required>
           <el-input v-model="form.name" />
@@ -46,12 +47,14 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
+        <div class="drawer-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submit">确定</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <el-dialog v-model="importVisible" title="批量导入学员" width="480px">
+    <el-drawer v-model="importVisible" title="批量导入学员" direction="rtl" size="70%" destroy-on-close>
       <el-form label-width="90px">
         <el-form-item label="校区" required>
           <el-select v-model="importCampusId" style="width: 100%">
@@ -64,10 +67,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="importVisible = false">取消</el-button>
-        <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
+        <div class="drawer-footer">
+          <el-button @click="importVisible = false">取消</el-button>
+          <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 

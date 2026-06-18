@@ -49,6 +49,18 @@ INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order
 SELECT p.id, '编辑学员', 'student:update', 2, NULL, 3 FROM sys_permission p WHERE p.code = 'student' LIMIT 1;
 
 INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order) VALUES
+(0, '学科管理', 'subject', 1, '/subject', 4);
+
+INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
+SELECT p.id, '新建学科', 'subject:create', 2, NULL, 1 FROM sys_permission p WHERE p.code = 'subject' LIMIT 1;
+
+INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order) VALUES
+(0, '年级管理', 'grade', 1, '/grade', 5);
+
+INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
+SELECT p.id, '新建年级', 'grade:create', 2, NULL, 1 FROM sys_permission p WHERE p.code = 'grade' LIMIT 1;
+
+INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order) VALUES
 (0, '课程类型', 'course-type', 1, '/course-type', 4);
 
 INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
@@ -69,14 +81,23 @@ SELECT p.id, '新建订单', 'order:create', 2, NULL, 1 FROM sys_permission p WH
 INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
 SELECT p.id, '发起退费', 'order:refund', 2, NULL, 2 FROM sys_permission p WHERE p.code = 'order' LIMIT 1;
 
+INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
+SELECT p.id, '导出订单', 'order:export', 2, NULL, 3 FROM sys_permission p WHERE p.code = 'order' LIMIT 1;
+
 INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order) VALUES
 (0, '消课管理', 'consumption', 1, '/consumption', 7);
 
 INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
 SELECT p.id, '执行消课', 'consumption:execute', 2, NULL, 1 FROM sys_permission p WHERE p.code = 'consumption' LIMIT 1;
 
+INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
+SELECT p.id, '导出消课', 'consumption:export', 2, NULL, 2 FROM sys_permission p WHERE p.code = 'consumption' LIMIT 1;
+
 INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order) VALUES
 (0, '财务管理', 'finance', 1, '/finance', 8);
+
+INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order)
+SELECT p.id, '导出财务', 'finance:export', 2, NULL, 1 FROM sys_permission p WHERE p.code = 'finance' LIMIT 1;
 
 INSERT IGNORE INTO sys_permission (parent_id, name, code, type, path, sort_order) VALUES
 (0, '排课管理', 'schedule', 1, '/schedule', 9);

@@ -15,11 +15,17 @@ public class ConsumptionOrderContextVO {
     private Long campusId;
     private Long teacherId;
     private String teacherName;
+    private String teacherNames;
     private String courseName;
+    private List<SubjectOptionVO> subjects;
+    private Long defaultSubjectId;
     private ConsumptionMode consumptionMode;
     private BigDecimal unitAmount;
     private BigDecimal unitHours;
     private Integer sessionMinutes;
+    private BigDecimal paidAmount;
+    private Integer totalHours;
+    private BigDecimal consumedAmount;
     private BigDecimal pendingAmount;
     private BigDecimal pendingHours;
     private List<ConsumptionRecordVO> completedRecords;

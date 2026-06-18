@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <el-descriptions v-if="detail" title="订单信息" :column="3" border>
+    <el-descriptions v-if="detail" title="订单信息" :column="2" border class="detail-section">
       <el-descriptions-item label="订单号">{{ detail.order.orderNo }}</el-descriptions-item>
       <el-descriptions-item label="校区">{{ detail.campusName }}</el-descriptions-item>
       <el-descriptions-item label="状态">{{ labelOf(ORDER_STATUS, detail.order.status) }}</el-descriptions-item>
@@ -17,21 +17,62 @@
       <el-descriptions-item label="课程">{{ detail.courseName }}</el-descriptions-item>
       <el-descriptions-item label="课时数">{{ detail.order.totalHours }}</el-descriptions-item>
       <el-descriptions-item label="收款金额">{{ detail.order.paidAmount }}</el-descriptions-item>
+      <el-descriptions-item label="收款方式">{{ labelOf(PAYMENT_METHODS, detail.order.paymentMethod) }}</el-descriptions-item>
+      <el-descriptions-item label="收款日期">{{ detail.order.paymentDate }}</el-descriptions-item>
+      <el-descriptions-item v-if="detail.order.unionPayOrderNo" label="银联订单号">{{ detail.order.unionPayOrderNo }}</el-descriptions-item>
+      <el-descriptions-item label="销售人">{{ detail.salespersonNames || detail.salespersonName || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="主讲老师">{{ detail.teacherNames || detail.teacherName || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="已退费">{{ detail.order.refundedAmount }}</el-descriptions-item>
+      <el-descriptions-item label="备注" :span="2">{{ detail.order.remark || '-' }}</el-descriptions-item>
+    </el-descriptions>
+
+    <el-descriptions v-if="detail" title="消课信息" :column="2" border class="detail-section mt-16">
       <el-descriptions-item label="已消课金额">{{ detail.order.consumedAmount }}</el-descriptions-item>
+      <el-descriptions-item label="已消课时">{{ detail.order.consumedHours }}</el-descriptions-item>
       <el-descriptions-item label="待消课金额">{{ detail.pendingAmount }}</el-descriptions-item>
       <el-descriptions-item label="待消课时">{{ detail.pendingHours }}</el-descriptions-item>
-      <el-descriptions-item label="已退费">{{ detail.order.refundedAmount }}</el-descriptions-item>
-      <el-descriptions-item label="销售人">{{ detail.salespersonName }}</el-descriptions-item>
-      <el-descriptions-item label="主讲老师">{{ detail.teacherName || '-' }}</el-descriptions-item>
-      <el-descriptions-item label="备注">{{ detail.order.remark }}</el-descriptions-item>
     </el-descriptions>
+
+    <el-card v-if="consumptionRecords.length" class="mt-16" header="消课记录">
+      <el-table :data="consumptionRecords" border stripe size="small">
+        <el-table-column prop="subjectName" label="学科" width="90">
+          <template #default="{ row }">{{ row.subjectName || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="teacherName" label="上课老师" width="100">
+          <template #default="{ row }">{{ row.teacherName || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="消课金额" width="100">
+          <template #default="{ row }">{{ formatAmount(row.consumedAmount) }}</template>
+        </el-table-column>
+        <el-table-column label="消课课时" width="100">
+          <template #default="{ row }">{{ row.consumptionMode === 'HOURS' ? row.consumedHours : '-' }}</template>
+        </el-table-column>
+        <el-table-column label="上课时间" min-width="170">
+          <template #default="{ row }">{{ formatTime(row.classTime) }}</template>
+        </el-table-column>
+        <el-table-column label="结课时间" min-width="170">
+          <template #default="{ row }">{{ formatTime(row.classEndTime) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'CANCELLED' ? 'info' : 'success'" size="small">
+              {{ labelOf(CONSUMPTION_STATUS, row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="cancelReason" label="取消原因" min-width="120" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.cancelReason || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+      </el-table>
+    </el-card>
 
     <el-card v-if="detail?.refunds?.length" class="mt-16" header="退款记录">
       <el-table :data="detail.refunds" border>
         <el-table-column prop="refundAmount" label="退款金额" />
         <el-table-column prop="refundReason" label="退款原因" />
         <el-table-column label="退款方式">
-          <template #default="{ row }">{{ labelOf(PAYMENT_METHODS, row.refundMethod) }}</template>
+          <template #default="{ row }">{{ labelOf(REFUND_METHODS, row.refundMethod) || labelOf(PAYMENT_METHODS, row.refundMethod) }}</template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" show-overflow-tooltip />
         <el-table-column prop="createdAt" label="退款时间" />
@@ -49,7 +90,7 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="refundVisible" title="发起退款" width="520px">
+    <el-drawer v-model="refundVisible" title="发起退款" direction="rtl" size="70%" destroy-on-close>
       <el-form :model="refundForm" label-width="100px">
         <el-form-item label="收款金额">
           <span>{{ refundForm.paidAmount }}</span>
@@ -72,8 +113,8 @@
           <el-input v-model="refundForm.refundReason" type="textarea" />
         </el-form-item>
         <el-form-item label="退款方式" required>
-          <el-select v-model="refundForm.refundMethod" style="width: 100%">
-            <el-option v-for="m in PAYMENT_METHODS" :key="m.value" :label="m.label" :value="m.value" />
+          <el-select v-model="refundForm.refundMethod" style="width: 100%" disabled>
+            <el-option v-for="m in REFUND_METHODS" :key="m.value" :label="m.label" :value="m.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
@@ -82,39 +123,58 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="refundVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitRefund">确定</el-button>
+        <div class="drawer-footer">
+          <el-button @click="refundVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitRefund">确定</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import dayjs from 'dayjs'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { showSuccess } from '@/composables/useCommon'
-import { PAYMENT_METHODS, ORDER_STATUS, AUDIT_ACTIONS, labelOf } from '@/constants'
+import { PAYMENT_METHODS, REFUND_METHODS, ORDER_STATUS, AUDIT_ACTIONS, CONSUMPTION_STATUS, labelOf } from '@/constants'
 
 const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const detail = ref(null)
+const consumptionRecords = ref([])
 const refundVisible = ref(false)
 const refundForm = reactive({
   paidAmount: 0, consumedAmount: 0, refundedAmount: 0,
   refundableAmount: 0, maxRefund: 0, refundAmount: 0,
-  refundReason: '', refundMethod: 'WECHAT', remark: ''
+  refundReason: '', refundMethod: 'BANK_CARD', remark: ''
 })
 
 async function loadDetail() {
   loading.value = true
   try {
     detail.value = await request.get(`/orders/${route.params.id}`)
+    try {
+      consumptionRecords.value = await request.get(`/consumptions/order/${route.params.id}/records`)
+    } catch {
+      consumptionRecords.value = []
+    }
   } finally {
     loading.value = false
   }
+}
+
+function formatTime(value) {
+  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '-'
+}
+
+function formatAmount(value) {
+  const num = Number(value)
+  if (Number.isNaN(num)) return '-'
+  return num.toFixed(2)
 }
 
 function openRefund() {
@@ -132,7 +192,7 @@ function openRefund() {
     maxRefund,
     refundAmount: maxRefund || refundableAmount,
     refundReason: '',
-    refundMethod: 'WECHAT',
+    refundMethod: 'BANK_CARD',
     remark: ''
   })
   refundVisible.value = true
@@ -155,6 +215,9 @@ onMounted(loadDetail)
 
 <style scoped>
 .mt-16 { margin-top: 16px; }
+.detail-section :deep(.el-descriptions__title) {
+  font-weight: 600;
+}
 .refundable { color: #e6a23c; font-weight: 600; }
 .tip { margin-left: 8px; font-size: 12px; color: #909399; }
 </style>

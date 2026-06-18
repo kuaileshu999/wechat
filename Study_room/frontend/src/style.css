@@ -28,3 +28,54 @@ body {
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
+
+.drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 表单控件说明文字：左对齐、上下居中 */
+.el-select .el-select__wrapper {
+  align-items: center;
+  min-height: var(--el-component-size);
+}
+
+.el-select .el-select__selection {
+  align-items: center;
+}
+
+.el-select .el-select__selection.is-near {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  align-content: center;
+}
+
+.el-select .el-select__placeholder {
+  text-align: left;
+}
+
+.el-input .el-input__wrapper {
+  align-items: center;
+}
+
+.el-input .el-input__inner,
+.el-input .el-input__inner::placeholder {
+  text-align: left;
+}
+
+.el-textarea .el-textarea__inner,
+.el-textarea .el-textarea__inner::placeholder {
+  text-align: left;
+}
+
+.el-drawer .el-form .el-textarea .el-textarea__inner:placeholder-shown {
+  min-height: var(--el-component-size);
+  line-height: calc(var(--el-component-size) - 11px);
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.el-date-editor .el-input__wrapper {
+  align-items: center;
+}

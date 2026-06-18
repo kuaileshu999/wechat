@@ -8,14 +8,24 @@ export const SUBJECTS = [
 ]
 
 export const PAYMENT_METHODS = [
+  { label: '银联', value: 'UNION_PAY' },
   { label: '支付宝', value: 'ALIPAY' },
   { label: '微信', value: 'WECHAT' },
   { label: '现金', value: 'CASH' }
 ]
 
+export const REFUND_METHODS = [
+  { label: '银行卡', value: 'BANK_CARD' }
+]
+
 export const CONSUMPTION_MODES = [
   { label: '按金额消课', value: 'AMOUNT' },
   { label: '按课时消课', value: 'HOURS' }
+]
+
+export const CONSUMPTION_STATUS = [
+  { label: '已完成', value: 'COMPLETED' },
+  { label: '已取消', value: 'CANCELLED' }
 ]
 
 export const EMPLOYMENT_STATUS = [

@@ -1,5 +1,5 @@
 package com.studyroom.enums;
 
 public enum PaymentMethod {
-    ALIPAY, WECHAT, CASH
+    UNION_PAY, ALIPAY, WECHAT, CASH, BANK_CARD
 }

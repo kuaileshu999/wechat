@@ -45,6 +45,9 @@ public class Order {
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;
 
+    @Column(name = "union_pay_order_no", length = 64)
+    private String unionPayOrderNo;
+
     @Column(name = "salesperson_id", nullable = false)
     private Long salespersonId;
 

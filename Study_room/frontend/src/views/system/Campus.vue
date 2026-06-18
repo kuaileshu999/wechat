@@ -28,17 +28,20 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑校区' : '新建校区'" width="480px">
+    <el-drawer v-model="dialogVisible" :title="form.id ? '编辑校区' : '新建校区'"
+               direction="rtl" size="70%" destroy-on-close>
       <el-form :model="form" label-width="90px">
         <el-form-item label="校区名称" required>
           <el-input v-model="form.name" placeholder="请输入校区名称" maxlength="100" show-word-limit />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
+        <div class="drawer-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submit">确定</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 

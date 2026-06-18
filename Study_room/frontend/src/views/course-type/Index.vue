@@ -24,7 +24,7 @@
     <el-pagination class="mt-16" background layout="total, prev, pager, next"
                    :total="total" :current-page="page" @current-change="onPageChange" />
 
-    <el-dialog v-model="dialogVisible" title="新建课程类型" width="480px">
+    <el-drawer v-model="dialogVisible" title="新建课程类型" direction="rtl" size="70%" destroy-on-close>
       <el-form :model="form" label-width="110px">
         <el-form-item label="校区" required>
           <el-select v-model="form.campusId" style="width: 100%">
@@ -36,10 +36,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">确定</el-button>
+        <div class="drawer-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submit">确定</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 

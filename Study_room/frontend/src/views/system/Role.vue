@@ -25,7 +25,8 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑角色' : '新建角色'" width="640px" destroy-on-close>
+    <el-drawer v-model="dialogVisible" :title="form.id ? '编辑角色' : '新建角色'"
+               direction="rtl" size="70%" destroy-on-close>
       <el-form :model="form" label-width="90px">
         <el-form-item label="角色名称" required>
           <el-input v-model="form.name" placeholder="如：校区财务" />
@@ -43,6 +44,7 @@
               node-key="id"
               default-expand-all
               :props="{ label: 'name', children: 'children' }"
+              class="permission-tree"
               @check="onPermissionCheck"
             />
           </div>
@@ -50,10 +52,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submit">保存</el-button>
+        <div class="drawer-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="submitting" @click="submit">保存</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 
@@ -170,11 +174,25 @@ onMounted(() => {
 <style scoped>
 .tree-box {
   width: 100%;
-  max-height: 360px;
+  max-height: 420px;
   overflow: auto;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   padding: 8px;
+}
+
+.permission-tree :deep(.el-tree-node__content) {
+  height: auto;
+  min-height: 30px;
+  align-items: flex-start;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.permission-tree :deep(.el-tree-node__label) {
+  white-space: normal;
+  line-height: 1.5;
+  word-break: break-all;
 }
 
 .tip {

@@ -13,6 +13,8 @@ public class ConsumptionRequest {
     @NotNull(message = "订单ID不能为空")
     private Long orderId;
 
+    private Long subjectId;
+
     private String remark;
 
     @NotEmpty(message = "请至少添加一次消课")

@@ -54,6 +54,18 @@ public class StudentService {
         return studentRepository.searchByKeyword(campusIds, keyword.trim());
     }
 
+    public List<Student> listOptions(Long campusId, String keyword) {
+        if (campusId == null) {
+            throw new BusinessException("请选择校区");
+        }
+        campusService.ensureCampusEnabled(campusId);
+        List<Long> campusIds = CampusScope.currentCampusIds();
+        if (keyword == null || keyword.isBlank()) {
+            return studentRepository.findByCampusInScope(campusIds, campusId, PageRequest.of(0, 200));
+        }
+        return studentRepository.searchByCampusAndKeyword(campusIds, campusId, keyword.trim());
+    }
+
     public List<Student> searchForSchedule(String keyword, Long campusId) {
         if (campusId == null) {
             throw new BusinessException("请选择校区");

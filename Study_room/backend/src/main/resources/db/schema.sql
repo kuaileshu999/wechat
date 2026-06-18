@@ -103,13 +103,34 @@ CREATE TABLE IF NOT EXISTS course_type (
     INDEX idx_course_type_campus (campus_id)
 );
 
+-- 年级（全校区共用）
+CREATE TABLE IF NOT EXISTS grade (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_grade_name (name)
+);
+
+-- 学科（全校区共用）
+CREATE TABLE IF NOT EXISTS subject_dict (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_subject_dict_name (name)
+);
+
 -- 课程
 CREATE TABLE IF NOT EXISTS course (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     campus_id BIGINT NOT NULL,
     course_type_id BIGINT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    subject VARCHAR(20) NOT NULL COMMENT '语文/数学/英语/物理/历史/地理',
+    subject_id BIGINT NOT NULL,
+    grade_id BIGINT NOT NULL,
     consumption_mode VARCHAR(20) NOT NULL COMMENT 'AMOUNT每次扣金额 HOURS每次扣课时',
     unit_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '每课时金额或每次扣金额',
     unit_hours DECIMAL(10,2) NOT NULL DEFAULT 1 COMMENT '每次扣几课时',
@@ -118,7 +139,9 @@ CREATE TABLE IF NOT EXISTS course (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_course_campus (campus_id),
-    INDEX idx_course_type (course_type_id)
+    INDEX idx_course_type (course_type_id),
+    INDEX idx_course_subject (subject_id),
+    INDEX idx_course_grade (grade_id)
 );
 
 -- 订单
@@ -130,8 +153,9 @@ CREATE TABLE IF NOT EXISTS orders (
     course_id BIGINT NOT NULL,
     total_hours INT NOT NULL,
     paid_amount DECIMAL(12,2) NOT NULL,
-    payment_method VARCHAR(20) NOT NULL COMMENT 'ALIPAY/WECHAT/CASH',
+    payment_method VARCHAR(20) NOT NULL COMMENT 'UNION_PAY/ALIPAY/WECHAT/CASH',
     payment_date DATE NOT NULL,
+    union_pay_order_no VARCHAR(64) NULL COMMENT '银联订单号',
     salesperson_id BIGINT NOT NULL,
     teacher_id BIGINT NULL COMMENT '上课老师',
     remark VARCHAR(500),
@@ -176,6 +200,7 @@ CREATE TABLE IF NOT EXISTS consumption_record (
     status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED' COMMENT 'COMPLETED/PENDING/CANCELLED',
     batch_no VARCHAR(32),
     remark VARCHAR(500),
+    cancel_reason VARCHAR(500) COMMENT '取消原因',
     created_by BIGINT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

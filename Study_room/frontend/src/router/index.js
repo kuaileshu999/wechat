@@ -28,6 +28,8 @@ const routes = [
       ]},
       { path: 'employee', name: 'Employee', component: () => import('@/views/employee/Index.vue'), meta: { permission: 'employee' } },
       { path: 'student', name: 'Student', component: () => import('@/views/student/Index.vue'), meta: { permission: 'student' } },
+      { path: 'subject', name: 'Subject', component: () => import('@/views/subject/Index.vue'), meta: { permission: 'subject' } },
+      { path: 'grade', name: 'Grade', component: () => import('@/views/grade/Index.vue'), meta: { permission: 'grade' } },
       { path: 'course-type', name: 'CourseType', component: () => import('@/views/course-type/Index.vue'), meta: { permission: 'course-type' } },
       { path: 'course', name: 'Course', component: () => import('@/views/course/Index.vue'), meta: { permission: 'course' } },
       { path: 'order', name: 'Order', component: () => import('@/views/order/Index.vue'), meta: { permission: 'order' } },

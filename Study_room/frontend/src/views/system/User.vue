@@ -40,7 +40,7 @@
     <el-pagination class="mt-16" background layout="total, prev, pager, next"
                    :total="total" :current-page="page" @current-change="onPageChange" />
 
-    <el-dialog v-model="createVisible" title="新建用户" width="520px">
+    <el-drawer v-model="createVisible" title="新建用户" direction="rtl" size="70%" destroy-on-close>
       <el-form :model="createForm" label-width="100px">
         <el-form-item label="关联员工" required>
           <el-select v-model="createForm.employeeId" filterable style="width: 100%" @change="onEmployeeSelect">
@@ -67,12 +67,14 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitCreate">确定</el-button>
+        <div class="drawer-footer">
+          <el-button @click="createVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitCreate">确定</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <el-dialog v-model="editVisible" title="编辑用户" width="520px">
+    <el-drawer v-model="editVisible" title="编辑用户" direction="rtl" size="70%" destroy-on-close>
       <el-form :model="editForm" label-width="100px">
         <el-form-item label="用户">
           <span>{{ editForm.realName }}（{{ editForm.username }}）</span>
@@ -94,12 +96,14 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitEdit">保存</el-button>
+        <div class="drawer-footer">
+          <el-button @click="editVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitEdit">保存</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <el-dialog v-model="pwdVisible" title="重置密码" width="480px">
+    <el-drawer v-model="pwdVisible" title="重置密码" direction="rtl" size="70%" destroy-on-close>
       <el-form :model="pwdForm" label-width="100px">
         <el-form-item label="用户">
           <span>{{ pwdForm.realName }}（{{ pwdForm.username }}）</span>
@@ -109,10 +113,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="pwdVisible = false">取消</el-button>
-        <el-button type="warning" @click="submitResetPwd">重置并解锁</el-button>
+        <div class="drawer-footer">
+          <el-button @click="pwdVisible = false">取消</el-button>
+          <el-button type="warning" @click="submitResetPwd">重置并解锁</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 

@@ -20,9 +20,13 @@ public class CourseController {
 
     @GetMapping
     public ApiResponse<PageResult<Course>> list(
+            @RequestParam(required = false) Long campusId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long gradeId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success(courseService.list(page, size));
+        return ApiResponse.success(courseService.list(campusId, name, subjectId, gradeId, page, size));
     }
 
     @GetMapping("/enabled/{campusId}")

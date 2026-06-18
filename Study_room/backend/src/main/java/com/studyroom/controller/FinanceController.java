@@ -2,10 +2,13 @@ package com.studyroom.controller;
 
 import com.studyroom.common.ApiResponse;
 import com.studyroom.dto.FinanceReportVO;
+import com.studyroom.service.ExportService;
 import com.studyroom.service.FinanceService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -15,6 +18,7 @@ import java.util.List;
 public class FinanceController {
 
     private final FinanceService financeService;
+    private final ExportService exportService;
 
     @GetMapping("/by-day")
     public ApiResponse<List<FinanceReportVO>> byDay(
@@ -36,5 +40,16 @@ public class FinanceController {
             @RequestParam LocalDate startDate,
             @RequestParam LocalDate endDate) {
         return ApiResponse.success(financeService.reportByCampus(startDate, endDate));
+    }
+
+    @GetMapping("/export")
+    public void export(
+            HttpServletResponse response,
+            @RequestParam(defaultValue = "day") String type,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) Long campusId) throws IOException {
+        exportService.exportFinance(response, type, startDate, endDate, month, campusId);
     }
 }
