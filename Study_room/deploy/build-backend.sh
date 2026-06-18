@@ -2,11 +2,20 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DEPLOY_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$ROOT/.." && pwd)"
 ENV_FILE="$ROOT/deploy/.env"
 
-# shellcheck disable=SC1091
-source "$REPO_ROOT/deploy/common.sh"
+if [[ -f "$DEPLOY_DIR/common.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$DEPLOY_DIR/common.sh"
+elif [[ -f "$REPO_ROOT/deploy/common.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/deploy/common.sh"
+else
+  echo "错误: 未找到 common.sh"
+  exit 1
+fi
 
 if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090

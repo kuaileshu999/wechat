@@ -2,11 +2,20 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DEPLOY_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$ROOT/.." && pwd)"
 ENV_FILE="$ROOT/deploy/.env"
 
-# shellcheck disable=SC1091
-source "$REPO_ROOT/deploy/common.sh"
+if [[ -f "$DEPLOY_DIR/common.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$DEPLOY_DIR/common.sh"
+elif [[ -f "$REPO_ROOT/deploy/common.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/deploy/common.sh"
+else
+  echo "错误: 未找到 common.sh"
+  exit 1
+fi
 
 if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
@@ -16,6 +25,10 @@ fi
 setup_java_home
 
 SERVER_PORT="${SERVER_PORT:-8080}"
+DB_HOST="${DB_HOST:-127.0.0.1}"
+DB_PORT="${DB_PORT:-3306}"
+DB_NAME="${DB_NAME:-study_room}"
+DB_USER="${DB_USER:-root}"
 JAVA_OPTS="${JAVA_OPTS:--Xms256m -Xmx512m}"
 LOG_FILE="$ROOT/deploy/app.log"
 PID_FILE="$ROOT/deploy/app.pid"
@@ -24,6 +37,15 @@ JAR="$ROOT/backend/target/study-room-backend-1.0.0.jar"
 if [[ ! -f "$JAR" ]]; then
   echo "未找到 jar，请先执行: bash Study_room/deploy/build-backend.sh"
   exit 1
+fi
+
+SPRING_ARGS=(--server.port="$SERVER_PORT")
+if [[ -n "${DB_PASSWORD:-}" ]]; then
+  SPRING_ARGS+=(
+    --spring.datasource.url="jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai"
+    --spring.datasource.username="$DB_USER"
+    --spring.datasource.password="$DB_PASSWORD"
+  )
 fi
 
 if [[ -f "$PID_FILE" ]]; then
@@ -36,7 +58,7 @@ if [[ -f "$PID_FILE" ]]; then
 fi
 
 echo "==> 启动自习室后端 ..."
-nohup java $JAVA_OPTS -jar "$JAR" --server.port="$SERVER_PORT" > "$LOG_FILE" 2>&1 &
+nohup java $JAVA_OPTS -jar "$JAR" "${SPRING_ARGS[@]}" > "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
 sleep 12
 

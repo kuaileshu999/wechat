@@ -26,7 +26,22 @@ bash "$ROOT/deploy/build-backend.sh"
 
 echo ""
 echo "==> 2/3 构建前端"
-bash "$ROOT/deploy/build-frontend.sh"
+if [[ "${SKIP_FRONTEND_BUILD:-}" == "1" ]]; then
+  echo "跳过（SKIP_FRONTEND_BUILD=1）"
+elif [[ -d "$ROOT/deploy/dist" ]] && [[ -f "$ROOT/deploy/dist/index.html" ]]; then
+  echo "使用已上传的 deploy/dist（服务器 Node 版本过旧时请在本机构建后上传）"
+  rm -rf "$ROOT/frontend/dist"
+  cp -r "$ROOT/deploy/dist" "$ROOT/frontend/dist"
+else
+  if ! node -v >/dev/null 2>&1; then
+    echo "错误: 服务器无法运行 node，请在本机构建前端并上传："
+    echo "  bash deploy/package-update.sh"
+    echo "  scp study-room-update.tar.gz root@服务器:/root/wechat/"
+    echo "  cd /root/wechat/Study_room && tar -xzf ../study-room-update.tar.gz && bash deploy/server-update.sh"
+    exit 1
+  fi
+  bash "$ROOT/deploy/build-frontend.sh"
+fi
 
 echo ""
 echo "==> 3/3 重启后端"
